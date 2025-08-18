@@ -49,15 +49,12 @@ const UserManagement = () => {
                 if (branchDoc.exists()) {
                   branchName = branchDoc.data().name;
                 }
-                  
-                if (branchError) throw branchError;
-                branchName = branch?.name || 'Branch Not Found';
               } catch (error) {
                 console.error('Error fetching branch:', error);
                 branchName = 'Error Loading Branch';
               }
             }
-            return { ...user, branchName, name: user.full_name, user_id: user.id };
+            return { ...user, branchName, name: user.full_name, user_id: user.id } as UserWithBranch;
           })
         );
         

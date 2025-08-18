@@ -31,11 +31,9 @@ const Analytics = () => {
     setLoading(true);
     try {
       // Fetch branches
-      const { data: branchesData, error: branchesError } = await supabase
-        .from('branches')
-        .select('*');
+      const branchesSnapshot = await getDocs(collection(db, 'branches'));
+      const branchesData = branchesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      if (branchesError) throw branchesError;
       setBranches(branchesData || []);
 
       // Filter data based on user role and selected branch
@@ -48,20 +46,22 @@ const Analytics = () => {
       }
 
       // Fetch students
-      let studentsQuery = supabase.from('students').select('*');
+      let studentsSnapshot;
       if (branchFilter) {
-        studentsQuery = studentsQuery.eq('branch_id', branchFilter);
+        const studentsQuery = query(collection(db, 'students'), where('branch_id', '==', branchFilter));
+        studentsSnapshot = await getDocs(studentsQuery);
+      } else {
+        studentsSnapshot = await getDocs(collection(db, 'students'));
       }
-      const { data: students, error: studentsError } = await studentsQuery;
-      if (studentsError) throw studentsError;
+      const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // Fetch teachers from users table
-      let teachersQuery = supabase.from('users').select('*').eq('role', 'teacher');
+      let teachersQuery = query(collection(db, 'users'), where('role', '==', 'teacher'));
       if (branchFilter) {
-        teachersQuery = teachersQuery.eq('branch_id', branchFilter);
+        teachersQuery = query(collection(db, 'users'), where('role', '==', 'teacher'), where('branch_id', '==', branchFilter));
       }
-      const { data: teachers, error: teachersError } = await teachersQuery;
-      if (teachersError) throw teachersError;
+      const teachersSnapshot = await getDocs(teachersQuery);
+      const teachers = teachersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // Calculate branch-wise data
       const branchStats = (branchesData || []).map((branch: any) => {
@@ -77,9 +77,8 @@ const Analytics = () => {
       });
 
       // Fetch performance data from academic results (placeholder for now)
-      const { data: resultsData, error: resultsError } = await supabase
-        .from('academic_results')
-        .select('*');
+      const resultsSnapshot = await getDocs(collection(db, 'academic_results'));
+      const resultsData = resultsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Calculate subject-wise performance
       const subjectPerformance: {[key: string]: {scores: number[], total: number}} = {};
@@ -105,9 +104,8 @@ const Analytics = () => {
       });
 
       // Fetch attendance data (placeholder for now)
-      const { data: attendanceRecords, error: attendanceError } = await supabase
-        .from('attendance')
-        .select('*');
+      const attendanceSnapshot = await getDocs(collection(db, 'attendance'));
+      const attendanceRecords = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Calculate monthly attendance (simplified)
       const monthlyAttendance = [

@@ -50,17 +50,17 @@ const Attendance = () => {
     if (!profile?.branch_id) return;
     
     try {
-      let query = supabase
-        .from('students')
-        .select('*')
-        .eq('branch_id', profile.branch_id);
+      let studentsQuery = query(
+        collection(db, 'students'),
+        where('branch_id', '==', profile.branch_id)
+      );
 
       if (selectedClass) {
-        query = query.eq('class_id', selectedClass);
+        studentsQuery = query(studentsQuery, where('class_id', '==', selectedClass));
       }
 
-      const { data: studentsData, error } = await query;
-      if (error) throw error;
+      const studentsSnapshot = await getDocs(studentsQuery);
+      const studentsData = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
       
       setStudents(studentsData || []);
     } catch (error) {
@@ -70,18 +70,18 @@ const Attendance = () => {
 
   const fetchAttendance = async () => {
     try {
-      const { data: attendanceData, error } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('date', selectedDate);
-      
-      if (error) throw error;
+      const attendanceQuery = query(
+        collection(db, 'attendance'),
+        where('date', '==', selectedDate)
+      );
+      const attendanceSnapshot = await getDocs(attendanceQuery);
+      const attendanceData = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AttendanceRecord[];
       
       setAttendanceRecords(attendanceData || []);
       
       // Initialize attendance data for current date
       const attendanceMap: {[key: string]: AttendanceRecord} = {};
-      (attendanceData || []).forEach(record => {
+      (attendanceData || []).forEach((record: any) => {
         attendanceMap[record.student_id] = {
           ...record,
           status: record.present ? 'present' : 'absent'
@@ -148,27 +148,21 @@ const Attendance = () => {
       const promises = Object.values(attendanceData).map(async (record) => {
         if (record.id) {
           // Update existing record
-          const { error } = await supabase
-            .from('attendance')
-            .update({
-              present: (record as any).present,
-              remarks: record.remarks
-            })
-            .eq('id', record.id);
-          if (error) throw error;
+          const attendanceRef = doc(db, 'attendance', record.id);
+          await updateDoc(attendanceRef, {
+            present: (record as any).present,
+            remarks: record.remarks
+          });
         } else {
           // Create new record
-          const { error } = await supabase
-            .from('attendance')
-            .insert({
-              student_id: record.student_id,
-              date: record.date,
-              present: (record as any).present,
-              remarks: record.remarks || '',
-              branch_id: profile?.branch_id || '',
-              teacher_id: profile?.id || ''
-            });
-          if (error) throw error;
+          await addDoc(collection(db, 'attendance'), {
+            student_id: record.student_id,
+            date: record.date,
+            present: (record as any).present,
+            remarks: record.remarks || '',
+            branch_id: profile?.branch_id || '',
+            teacher_id: profile?.id || ''
+          });
         }
       });
 

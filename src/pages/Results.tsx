@@ -63,17 +63,17 @@ const Results = () => {
     if (!profile?.branch_id) return;
     
     try {
-      let query = supabase
-        .from('students')
-        .select('*')
-        .eq('branch_id', profile.branch_id);
-
+      let studentsQuery = query(
+        collection(db, 'students'),
+        where('branch_id', '==', profile.branch_id)
+      );
+      
       if (selectedClass) {
-        query = query.eq('class_id', selectedClass);
+        studentsQuery = query(studentsQuery, where('class_id', '==', selectedClass));
       }
-
-      const { data: studentsData, error } = await query;
-      if (error) throw error;
+      
+      const studentsSnapshot = await getDocs(studentsQuery);
+      const studentsData = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
       
       setStudents(studentsData || []);
     } catch (error) {
@@ -83,13 +83,10 @@ const Results = () => {
 
   const fetchResults = async () => {
     try {
-      const { data: resultsData, error } = await supabase
-        .from('academic_results')
-        .select('*');
-      
-      if (error) throw error;
+      const resultsSnapshot = await getDocs(collection(db, 'academic_results'));
+      const resultsData = resultsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
       // Transform data to match interface
-      const transformedResults = (resultsData || []).map(result => ({
+      const transformedResults = (resultsData || []).map((result: any) => ({
         ...result,
         subject: result.subject_id,
         score: result.marks,
@@ -165,21 +162,19 @@ const Results = () => {
       const score = Number(tempResult.score || tempResult.marks);
       const grade = calculateGrade(score);
       
-      const { error } = await supabase
-        .from('academic_results')
-        .insert({
-          student_id: tempResult.student_id,
-          subject_id: tempResult.subject || selectedSubject,
-          marks: score,
-          grade,
-          term: selectedTerm === 'Term 1' ? 'first' : selectedTerm === 'Term 2' ? 'second' : 'third',
-          academic_year: tempResult.year || selectedYear,
-          teacher_id: tempResult.teacher_id || profile?.id || '',
-          branch_id: profile?.branch_id || '',
-          remarks: tempResult.remarks || ''
-        });
-      
-      if (error) throw error;
+      await addDoc(collection(db, 'academic_results'), {
+        student_id: tempResult.student_id,
+        subject_id: tempResult.subject || selectedSubject,
+        marks: score,
+        grade,
+        term: selectedTerm === 'Term 1' ? 'first' : selectedTerm === 'Term 2' ? 'second' : 'third',
+        academic_year: tempResult.year || selectedYear,
+        teacher_id: tempResult.teacher_id || profile?.id || '',
+        branch_id: profile?.branch_id || '',
+        remarks: tempResult.remarks || '',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",
@@ -207,17 +202,13 @@ const Results = () => {
       const score = Number(updatedData.score || updatedData.marks);
       const grade = calculateGrade(score);
       
-      const { error } = await supabase
-        .from('academic_results')
-        .update({
-          marks: score,
-          grade,
-          remarks: updatedData.remarks
-        })
-        .eq('id', resultId);
+      const resultRef = doc(db, 'academic_results', resultId);
+      await updateDoc(resultRef, {
+        marks: score,
+        grade,
+        remarks: updatedData.remarks
+      });
       
-      if (error) throw error;
-
       toast({
         title: "Success",
         description: "Result updated successfully.",
