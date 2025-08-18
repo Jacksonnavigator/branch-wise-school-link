@@ -760,6 +760,13 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
+      get_user_role_and_branch_safe: {
+        Args: { user_id: string }
+        Returns: {
+          branch_id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
     }
     Enums: {
       behavior_type: "good" | "warning" | "punishment" | "counselor_note"
