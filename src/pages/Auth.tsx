@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Mail, Lock, User, Building2, Eye, EyeOff, ArrowLeft, GraduationCap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -47,23 +48,18 @@ const Auth = () => {
     const fetchBranchesAndAdminStatus = async () => {
       try {
         // Fetch branches
-        const { data: branchesData, error: branchesError } = await supabase
-          .from('branches')
-          .select('*');
-        
-        if (branchesError) throw branchesError;
+        const branchesSnapshot = await getDocs(collection(db, 'branches'));
+        const branchesData = branchesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Branch[];
         
         // Check if admin exists
-        const { data: adminData, error: adminError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('role', 'admin')
-          .limit(1);
+        const adminQuery = query(collection(db, 'users'), where('role', '==', 'admin'));
+        const adminSnapshot = await getDocs(adminQuery);
         
-        if (adminError) throw adminError;
-        
-        setBranches(branchesData || []);
-        setAdminExists((adminData || []).length > 0);
+        setBranches(branchesData);
+        setAdminExists(!adminSnapshot.empty);
       } catch (error) {
         console.error('Error fetching data:', error);
         setBranches([]);
@@ -78,15 +74,11 @@ const Auth = () => {
     const fetchAvailableBranches = async () => {
       if (role === 'headmaster') {
         try {
-          const { data: headmasterData, error } = await supabase
-            .from('users')
-            .select('branch_id')
-            .eq('role', 'headmaster');
+          const headmasterQuery = query(collection(db, 'users'), where('role', '==', 'headmaster'));
+          const headmasterSnapshot = await getDocs(headmasterQuery);
           
-          if (error) throw error;
-          
-          const occupiedBranchIds = (headmasterData || [])
-            .map(user => user.branch_id)
+          const occupiedBranchIds = headmasterSnapshot.docs
+            .map(doc => doc.data().branch_id)
             .filter(id => id !== null && id !== undefined);
           
           const available = branches.filter(branch => !occupiedBranchIds.includes(branch.id));

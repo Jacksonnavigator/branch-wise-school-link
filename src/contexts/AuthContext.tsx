@@ -1,7 +1,15 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { User } from 'firebase/auth';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  sendPasswordResetEmail,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface Profile {
@@ -16,7 +24,6 @@ interface Profile {
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, userData: { name: string; role: string; branch_id?: string }) => Promise<{ error: any }>;
@@ -37,88 +44,57 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Fetch user profile from Supabase
-          try {
-            const { data: profileData, error } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error && error.code !== 'PGRST116') {
-              console.error('Error fetching profile:', error);
-            } else if (profileData) {
-              setProfile({
-                id: profileData.id,
-                user_id: profileData.id,
-                name: profileData.full_name,
-                role: profileData.role,
-                branch_id: profileData.branch_id,
-                profile_photo: null
-              });
-            }
-          } catch (error) {
-            console.error('Error fetching profile:', error);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        // Fetch user profile from Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setProfile({
+              id: firebaseUser.uid,
+              user_id: firebaseUser.uid,
+              name: userData.full_name,
+              role: userData.role,
+              branch_id: userData.branch_id,
+              profile_photo: userData.profile_photo || null,
+              must_change_password: userData.must_change_password || false
+            });
           }
-        } else {
-          setProfile(null);
+        } catch (error) {
+          console.error('Error fetching profile:', error);
         }
-        
-        setLoading(false);
+      } else {
+        setProfile(null);
       }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, userData: { name: string; role: string; branch_id?: string }) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
+      // Create profile in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        email: email,
+        full_name: userData.name,
+        role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent',
+        branch_id: userData.branch_id || null,
+        created_at: new Date(),
+        updated_at: new Date()
       });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        // Create profile in users table
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: email,
-            full_name: userData.name,
-            role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent',
-            branch_id: userData.branch_id || null
-          });
-        
-        if (profileError) throw profileError;
-      }
       
       return { error: null };
     } catch (error: any) {
@@ -128,11 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      if (error) throw error;
+      await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
     } catch (error: any) {
       return { error };
@@ -141,10 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`
-      });
-      if (error) throw error;
+      await sendPasswordResetEmail(auth, email);
       return { error: null };
     } catch (error: any) {
       return { error };
@@ -152,8 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -165,7 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session,
       profile, 
       loading, 
       signUp, 

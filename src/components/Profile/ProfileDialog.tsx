@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Camera, Save, Upload } from 'lucide-react';
 
 interface ProfileDialogProps {
@@ -82,14 +83,10 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          full_name: formData.name
-        })
-        .eq('id', user.id);
-      
-      if (error) throw error;
+      await updateDoc(doc(db, 'users', user.uid), {
+        full_name: formData.name,
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",

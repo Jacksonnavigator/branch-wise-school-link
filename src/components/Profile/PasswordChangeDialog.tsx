@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { updatePassword } from 'firebase/auth';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Lock } from 'lucide-react';
 
 interface PasswordChangeDialogProps {
@@ -47,11 +49,13 @@ const PasswordChangeDialog = ({ open, onOpenChange, isRequired = false }: Passwo
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: formData.newPassword
-      });
+      await updatePassword(user, formData.newPassword);
       
-      if (error) throw error;
+      // Update must_change_password flag if it exists
+      await updateDoc(doc(db, 'users', user.uid), {
+        must_change_password: false,
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",

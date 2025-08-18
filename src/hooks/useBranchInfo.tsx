@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const useBranchInfo = () => {
   const { profile } = useAuth();
@@ -14,15 +15,12 @@ const useBranchInfo = () => {
       }
 
       try {
-        const { data: branch, error } = await supabase
-          .from('branches')
-          .select('name')
-          .eq('id', profile.branch_id)
-          .single();
-
-        if (error) throw error;
-        
-        setBranchName(branch?.name || 'Unknown Branch');
+        const branchDoc = await getDoc(doc(db, 'branches', profile.branch_id));
+        if (branchDoc.exists()) {
+          setBranchName(branchDoc.data()?.name || 'Unknown Branch');
+        } else {
+          setBranchName('Unknown Branch');
+        }
       } catch (error) {
         console.error('Error fetching branch info:', error);
         setBranchName('Error Loading Branch');
