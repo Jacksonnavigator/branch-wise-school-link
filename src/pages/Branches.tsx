@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, Plus, Search, MapPin, Mail, Phone, Users, UserCheck, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import BranchDetailsDialog from '@/components/Branches/BranchDetailsDialog';
 
@@ -46,13 +47,13 @@ const Branches = () => {
 
   const fetchBranches = async () => {
     try {
-      const { data: branchesData, error } = await supabase
-        .from('branches')
-        .select('*');
+      const branchesSnapshot = await getDocs(collection(db, 'branches'));
+      const branchesData = branchesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Branch[];
       
-      if (error) throw error;
-      
-      setBranches(branchesData || []);
+      setBranches(branchesData);
     } catch (error) {
       console.error('Error fetching branches:', error);
     } finally {
@@ -70,13 +71,18 @@ const Branches = () => {
     setIsSubmitting(true);
 
     try {
-      const { data: newBranch, error } = await supabase
-        .from('branches')
-        .insert([formData])
-        .select()
-        .single();
+      const docRef = await addDoc(collection(db, 'branches'), {
+        ...formData,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
       
-      if (error) throw error;
+      const newBranch = {
+        id: docRef.id,
+        ...formData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
       setBranches(prev => [...prev, newBranch]);
       setFormData({ name: '', address: '', email: '', phone: '' });
