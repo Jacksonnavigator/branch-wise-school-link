@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddTeacherDialogProps {
@@ -42,27 +40,31 @@ const AddTeacherDialog: React.FC<AddTeacherDialogProps> = ({
     try {
       // Create teacher account with temporary password
       const tempPassword = 'teacher123'; // They'll need to reset this
-      const { user } = await createUserWithEmailAndPassword(auth, formData.email, tempPassword);
-      
-      // Create teacher profile
-      await setDoc(doc(db, 'profiles', user.uid), {
-        id: user.uid,
-        user_id: user.uid,
-        name: formData.name,
-        role: 'teacher',
-        branch_id: profile.branch_id,
-        profile_photo: null,
-        phone: formData.phone,
-        subjects: formData.subjects.split(',').map(s => s.trim()),
-        qualification: formData.qualification,
-        experience: formData.experience,
-        must_change_password: true, // Force password change on first login
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: tempPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
-
-      // Sign out the newly created user to keep the headmaster logged in
-      await signOut(auth);
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        // Create teacher profile
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: formData.email,
+            full_name: formData.name,
+            role: 'teacher',
+            branch_id: profile.branch_id,
+            phone: formData.phone
+          });
+        
+        if (profileError) throw profileError;
+      }
 
       toast({
         title: "Success",

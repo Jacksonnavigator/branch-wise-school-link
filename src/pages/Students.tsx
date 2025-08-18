@@ -6,23 +6,22 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, User, Plus, Search, BookOpen, Phone, Trash2 } from 'lucide-react';
-import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import AddStudentDialog from '@/components/Students/AddStudentDialog';
-import StudentDetailsDialog from '@/components/Students/StudentDetailsDialog';
+import { supabase } from '@/integrations/supabase/client';
+import AddStudentDialog from '@/components/student/AddStudentDialog';
+import StudentDetailsDialog from '@/components/student/StudentDetailsDialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface Student {
   id: string;
   full_name: string;
   admission_number: string;
-  class: string;
   date_of_birth: string;
-  gender: 'male' | 'female';
-  parent_contact_name: string;
-  parent_contact_email: string;
-  parent_contact_phone: string;
+  gender: 'male' | 'female' | 'other';
+  guardian_name: string;
+  guardian_email: string;
+  guardian_phone: string;
   branch_id: string;
+  class_id: string;
 }
 
 const Students = () => {
@@ -44,17 +43,14 @@ const Students = () => {
     if (!profile?.branch_id) return;
     
     try {
-      const studentsQuery = query(
-        collection(db, 'students'),
-        where('branch_id', '==', profile.branch_id)
-      );
-      const studentsSnapshot = await getDocs(studentsQuery);
-      const studentsData = studentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Student[];
+      const { data: studentsData, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('branch_id', profile.branch_id);
       
-      setStudents(studentsData);
+      if (error) throw error;
+      
+      setStudents(studentsData || []);
     } catch (error) {
       console.error('Error fetching students:', error);
     } finally {
@@ -66,7 +62,13 @@ const Students = () => {
     if (!confirm('Are you sure you want to delete this student?')) return;
     
     try {
-      await deleteDoc(doc(db, 'students', studentId));
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', studentId);
+      
+      if (error) throw error;
+      
       setStudents(prev => prev.filter(s => s.id !== studentId));
       toast({
         title: "Success",
@@ -84,8 +86,7 @@ const Students = () => {
 
   const filteredStudents = students.filter(student =>
     student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.class.toLowerCase().includes(searchTerm.toLowerCase())
+    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -161,7 +162,7 @@ const Students = () => {
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <BookOpen className="h-3 w-3" />
-                              {student.class}
+                              Class ID: {student.class_id}
                             </span>
                             <span>•</span>
                             <Badge variant="outline" className="capitalize">
@@ -171,11 +172,11 @@ const Students = () => {
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
-                              Parent: {student.parent_contact_name}
+                              Guardian: {student.guardian_name}
                             </span>
                             <span className="flex items-center gap-1">
                               <Phone className="h-3 w-3" />
-                              {student.parent_contact_phone}
+                              {student.guardian_phone}
                             </span>
                           </div>
                         </div>

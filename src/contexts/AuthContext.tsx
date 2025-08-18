@@ -1,9 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import PasswordChangeDialog from '@/components/Profile/PasswordChangeDialog';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Profile {
   id: string;
@@ -17,11 +16,11 @@ interface Profile {
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, userData: { name: string; role: string; branch_id?: string }) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -38,55 +37,88 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
-        // Fetch user profile from Firestore
-        try {
-          const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
-          if (profileDoc.exists()) {
-            const profileData = profileDoc.data() as Profile;
-            setProfile(profileData);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch user profile from Supabase
+          try {
+            const { data: profileData, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
             
-            // Check if user needs to change password
-            if (profileData.must_change_password) {
-              setShowPasswordChange(true);
+            if (error && error.code !== 'PGRST116') {
+              console.error('Error fetching profile:', error);
+            } else if (profileData) {
+              setProfile({
+                id: profileData.id,
+                user_id: profileData.id,
+                name: profileData.full_name,
+                role: profileData.role,
+                branch_id: profileData.branch_id,
+                profile_photo: null
+              });
             }
+          } catch (error) {
+            console.error('Error fetching profile:', error);
           }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
+        } else {
+          setProfile(null);
         }
-      } else {
-        setProfile(null);
+        
+        setLoading(false);
       }
-      
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, userData: { name: string; role: string; branch_id?: string }) => {
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      const redirectUrl = `${window.location.origin}/`;
       
-      // Create profile document in Firestore
-      await setDoc(doc(db, 'profiles', user.uid), {
-        id: user.uid,
-        user_id: user.uid,
-        name: userData.name,
-        role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent',
-        branch_id: userData.branch_id || null,
-        profile_photo: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
       });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        // Create profile in users table
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email: email,
+            full_name: userData.name,
+            role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent',
+            branch_id: userData.branch_id || null
+          });
+        
+        if (profileError) throw profileError;
+      }
       
       return { error: null };
     } catch (error: any) {
@@ -96,17 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      return { error: null };
-    } catch (error: any) {
-      return { error };
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) throw error;
       return { error: null };
     } catch (error: any) {
       return { error };
@@ -115,7 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string) => {
     try {
-      await sendPasswordResetEmail(auth, email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`
+      });
+      if (error) throw error;
       return { error: null };
     } catch (error: any) {
       return { error };
@@ -123,26 +152,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <AuthContext.Provider value={{ 
       user, 
+      session,
       profile, 
       loading, 
       signUp, 
       signIn, 
-      signInWithGoogle,
       resetPassword,
       signOut 
     }}>
       {children}
-      <PasswordChangeDialog 
-        open={showPasswordChange} 
-        onOpenChange={setShowPasswordChange}
-        isRequired={true}
-      />
     </AuthContext.Provider>
   );
 };

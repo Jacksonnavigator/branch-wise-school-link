@@ -7,22 +7,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 import { User, Phone, Mail, BookOpen, Calendar, Save } from 'lucide-react';
 
 interface Student {
   id: string;
   full_name: string;
   admission_number: string;
-  class: string;
   date_of_birth: string;
-  gender: 'male' | 'female';
-  parent_contact_name: string;
-  parent_contact_email: string;
-  parent_contact_phone: string;
+  gender: 'male' | 'female' | 'other';
+  guardian_name: string;
+  guardian_email: string;
+  guardian_phone: string;
   branch_id: string;
-  profile_photo?: string;
+  class_id: string;
+  profile_photo_url?: string;
 }
 
 interface StudentDetailsDialogProps {
@@ -50,10 +49,21 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
 
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'students', student.id), {
-        ...formData,
-        updated_at: new Date().toISOString()
-      });
+      const { error } = await supabase
+        .from('students')
+        .update({
+          full_name: formData.full_name,
+          admission_number: formData.admission_number,
+          date_of_birth: formData.date_of_birth,
+          gender: formData.gender,
+          guardian_name: formData.guardian_name,
+          guardian_email: formData.guardian_email,
+          guardian_phone: formData.guardian_phone,
+          profile_photo_url: formData.profile_photo_url
+        })
+        .eq('id', student.id);
+      
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -92,18 +102,18 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
           <div className="flex flex-col sm:flex-row items-start gap-6">
             <div className="flex flex-col items-center space-y-4">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={formData.profile_photo} />
+                <AvatarImage src={formData.profile_photo_url} />
                 <AvatarFallback className="text-lg">
                   {formData.full_name?.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
                 <div className="w-full space-y-2">
-                  <Label htmlFor="profile_photo">Profile Photo URL</Label>
+                  <Label htmlFor="profile_photo_url">Profile Photo URL</Label>
                   <Input
-                    id="profile_photo"
-                    value={formData.profile_photo || ''}
-                    onChange={(e) => setFormData({ ...formData, profile_photo: e.target.value })}
+                    id="profile_photo_url"
+                    value={formData.profile_photo_url || ''}
+                    onChange={(e) => setFormData({ ...formData, profile_photo_url: e.target.value })}
                     placeholder="Enter image URL"
                   />
                 </div>
@@ -135,11 +145,11 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="class">Class</Label>
+                  <Label htmlFor="class_id">Class ID</Label>
                   <Input
-                    id="class"
-                    value={formData.class || ''}
-                    onChange={(e) => setFormData({ ...formData, class: e.target.value })}
+                    id="class_id"
+                    value={formData.class_id || ''}
+                    onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
                     disabled={!isEditing}
                     required
                   />
@@ -162,7 +172,7 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
                   {isEditing ? (
                     <Select 
                       value={formData.gender} 
-                      onValueChange={(value) => setFormData({ ...formData, gender: value as 'male' | 'female' })}
+                      onValueChange={(value) => setFormData({ ...formData, gender: value as 'male' | 'female' | 'other' })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -170,6 +180,7 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
                       <SelectContent>
                         <SelectItem value="male">Male</SelectItem>
                         <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -191,34 +202,34 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="parent_contact_name">Parent/Guardian Name</Label>
+                <Label htmlFor="guardian_name">Guardian Name</Label>
                 <Input
-                  id="parent_contact_name"
-                  value={formData.parent_contact_name || ''}
-                  onChange={(e) => setFormData({ ...formData, parent_contact_name: e.target.value })}
+                  id="guardian_name"
+                  value={formData.guardian_name || ''}
+                  onChange={(e) => setFormData({ ...formData, guardian_name: e.target.value })}
                   disabled={!isEditing}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="parent_contact_phone">Parent/Guardian Phone</Label>
+                <Label htmlFor="guardian_phone">Guardian Phone</Label>
                 <Input
-                  id="parent_contact_phone"
-                  value={formData.parent_contact_phone || ''}
-                  onChange={(e) => setFormData({ ...formData, parent_contact_phone: e.target.value })}
+                  id="guardian_phone"
+                  value={formData.guardian_phone || ''}
+                  onChange={(e) => setFormData({ ...formData, guardian_phone: e.target.value })}
                   disabled={!isEditing}
                   required
                 />
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="parent_contact_email">Parent/Guardian Email</Label>
+                <Label htmlFor="guardian_email">Guardian Email</Label>
                 <Input
-                  id="parent_contact_email"
+                  id="guardian_email"
                   type="email"
-                  value={formData.parent_contact_email || ''}
-                  onChange={(e) => setFormData({ ...formData, parent_contact_email: e.target.value })}
+                  value={formData.guardian_email || ''}
+                  onChange={(e) => setFormData({ ...formData, guardian_email: e.target.value })}
                   disabled={!isEditing}
                   required
                 />
