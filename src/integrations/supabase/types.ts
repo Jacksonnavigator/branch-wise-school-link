@@ -753,7 +753,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role_and_branch: {
+        Args: { user_id: string }
+        Returns: {
+          branch_id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
     }
     Enums: {
       behavior_type: "good" | "warning" | "punishment" | "counselor_note"
