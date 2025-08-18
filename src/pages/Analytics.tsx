@@ -30,12 +30,12 @@ const Analytics = () => {
     setLoading(true);
     try {
       // Fetch branches
-      const branchesSnapshot = await getDocs(collection(db, 'branches'));
-      const branchesData = branchesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBranches(branchesData);
+      const { data: branchesData, error: branchesError } = await supabase
+        .from('branches')
+        .select('*');
+      
+      if (branchesError) throw branchesError;
+      setBranches(branchesData || []);
 
       // Filter data based on user role and selected branch
       let branchFilter = selectedBranch === 'all' ? null : selectedBranch;
@@ -47,30 +47,25 @@ const Analytics = () => {
       }
 
       // Fetch students
-      let studentsSnapshot;
+      let studentsQuery = supabase.from('students').select('*');
       if (branchFilter) {
-        const studentsQuery = query(collection(db, 'students'), where('branch_id', '==', branchFilter));
-        studentsSnapshot = await getDocs(studentsQuery);
-      } else {
-        studentsSnapshot = await getDocs(collection(db, 'students'));
+        studentsQuery = studentsQuery.eq('branch_id', branchFilter);
       }
-      const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      const { data: students, error: studentsError } = await studentsQuery;
+      if (studentsError) throw studentsError;
 
-      // Fetch teachers
-      let teachersSnapshot;
+      // Fetch teachers from users table
+      let teachersQuery = supabase.from('users').select('*').eq('role', 'teacher');
       if (branchFilter) {
-        const teachersQuery = query(collection(db, 'profiles'), where('role', '==', 'teacher'), where('branch_id', '==', branchFilter));
-        teachersSnapshot = await getDocs(teachersQuery);
-      } else {
-        const teachersQuery = query(collection(db, 'profiles'), where('role', '==', 'teacher'));
-        teachersSnapshot = await getDocs(teachersQuery);
+        teachersQuery = teachersQuery.eq('branch_id', branchFilter);
       }
-      const teachers = teachersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      const { data: teachers, error: teachersError } = await teachersQuery;
+      if (teachersError) throw teachersError;
 
       // Calculate branch-wise data
-      const branchStats = await Promise.all(branchesData.map(async (branch: any) => {
-        const branchStudents = students.filter((s: any) => s.branch_id === branch.id).length;
-        const branchTeachers = teachers.filter((t: any) => t.branch_id === branch.id).length;
+      const branchStats = (branchesData || []).map((branch: any) => {
+        const branchStudents = (students || []).filter((s: any) => s.branch_id === branch.id).length;
+        const branchTeachers = (teachers || []).filter((t: any) => t.branch_id === branch.id).length;
         
         return {
           name: branch.name,
@@ -78,15 +73,16 @@ const Analytics = () => {
           teachers: branchTeachers,
           total: branchStudents + branchTeachers
         };
-      }));
+      });
 
-      // Fetch performance data from academic results
-      const resultsSnapshot = await getDocs(collection(db, 'academic_results'));
-      const resultsData = resultsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      // Fetch performance data from academic results (placeholder for now)
+      const { data: resultsData, error: resultsError } = await supabase
+        .from('academic_results')
+        .select('*');
       
       // Calculate subject-wise performance
       const subjectPerformance: {[key: string]: {scores: number[], total: number}} = {};
-      resultsData.forEach((result: any) => {
+      (resultsData || []).forEach((result: any) => {
         if (!subjectPerformance[result.subject]) {
           subjectPerformance[result.subject] = { scores: [], total: 0 };
         }
@@ -107,9 +103,10 @@ const Analytics = () => {
         };
       });
 
-      // Fetch attendance data
-      const attendanceSnapshot = await getDocs(collection(db, 'attendance_records'));
-      const attendanceData = attendanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+      // Fetch attendance data (placeholder for now)
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*');
       
       // Calculate monthly attendance (simplified)
       const monthlyAttendance = [
@@ -122,9 +119,9 @@ const Analytics = () => {
       ];
 
       setStats({
-        totalStudents: students.length,
-        totalTeachers: teachers.length,
-        totalBranches: branchesData.length,
+        totalStudents: (students || []).length,
+        totalTeachers: (teachers || []).length,
+        totalBranches: (branchesData || []).length,
         avgAttendance: 95
       });
 

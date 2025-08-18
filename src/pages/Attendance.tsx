@@ -15,14 +15,14 @@ interface Student {
   id: string;
   full_name: string;
   admission_number: string;
-  class: string;
+  class_id: string;
 }
 
 interface AttendanceRecord {
   id?: string;
   student_id: string;
   date: string;
-  status: 'present' | 'absent' | 'late';
+  present: boolean;
   remarks?: string;
 }
 
@@ -49,22 +49,19 @@ const Attendance = () => {
     if (!profile?.branch_id) return;
     
     try {
-      let studentsQuery = query(
-        collection(db, 'students'),
-        where('branch_id', '==', profile.branch_id)
-      );
+      let query = supabase
+        .from('students')
+        .select('*')
+        .eq('branch_id', profile.branch_id);
 
       if (selectedClass) {
-        studentsQuery = query(studentsQuery, where('class', '==', selectedClass));
+        query = query.eq('class_id', selectedClass);
       }
 
-      const studentsSnapshot = await getDocs(studentsQuery);
-      const studentsData = studentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Student[];
+      const { data: studentsData, error } = await query;
+      if (error) throw error;
       
-      setStudents(studentsData);
+      setStudents(studentsData || []);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
@@ -72,21 +69,22 @@ const Attendance = () => {
 
   const fetchAttendance = async () => {
     try {
-      const attendanceSnapshot = await getDocs(query(
-        collection(db, 'attendance_records'),
-        where('date', '==', selectedDate)
-      ));
-      const attendanceData = attendanceSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as AttendanceRecord[];
+      const { data: attendanceData, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('date', selectedDate);
       
-      setAttendanceRecords(attendanceData);
+      if (error) throw error;
+      
+      setAttendanceRecords(attendanceData || []);
       
       // Initialize attendance data for current date
       const attendanceMap: {[key: string]: AttendanceRecord} = {};
-      attendanceData.forEach(record => {
-        attendanceMap[record.student_id] = record;
+      (attendanceData || []).forEach(record => {
+        attendanceMap[record.student_id] = {
+          ...record,
+          status: record.present ? 'present' : 'absent'
+        } as any;
       });
       setAttendanceData(attendanceMap);
     } catch (error) {
@@ -115,9 +113,9 @@ const Attendance = () => {
         newAttendanceData[student.id] = {
           student_id: student.id,
           date: selectedDate,
-          status: 'present',
+          present: true,
           remarks: ''
-        };
+        } as any;
       }
     });
     setAttendanceData(newAttendanceData);
@@ -128,8 +126,9 @@ const Attendance = () => {
       ...prev,
       [studentId]: {
         ...prev[studentId],
+        present: status === 'present',
         status
-      }
+      } as any
     }));
   };
 
@@ -148,21 +147,27 @@ const Attendance = () => {
       const promises = Object.values(attendanceData).map(async (record) => {
         if (record.id) {
           // Update existing record
-          await updateDoc(doc(db, 'attendance_records', record.id), {
-            status: record.status,
-            remarks: record.remarks,
-            updated_at: new Date().toISOString()
-          });
+          const { error } = await supabase
+            .from('attendance')
+            .update({
+              present: (record as any).present,
+              remarks: record.remarks
+            })
+            .eq('id', record.id);
+          if (error) throw error;
         } else {
           // Create new record
-          await addDoc(collection(db, 'attendance_records'), {
-            student_id: record.student_id,
-            date: record.date,
-            status: record.status,
-            remarks: record.remarks || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
+          const { error } = await supabase
+            .from('attendance')
+            .insert({
+              student_id: record.student_id,
+              date: record.date,
+              present: (record as any).present,
+              remarks: record.remarks || '',
+              branch_id: profile?.branch_id || '',
+              teacher_id: profile?.id || ''
+            });
+          if (error) throw error;
         }
       });
 
@@ -187,9 +192,9 @@ const Attendance = () => {
 
   const getAttendanceStats = () => {
     const totalStudents = students.length;
-    const presentCount = Object.values(attendanceData).filter(record => record.status === 'present').length;
-    const absentCount = Object.values(attendanceData).filter(record => record.status === 'absent').length;
-    const lateCount = Object.values(attendanceData).filter(record => record.status === 'late').length;
+    const presentCount = Object.values(attendanceData).filter(record => (record as any).status === 'present').length;
+    const absentCount = Object.values(attendanceData).filter(record => (record as any).status === 'absent').length;
+    const lateCount = Object.values(attendanceData).filter(record => (record as any).status === 'late').length;
 
     return { totalStudents, presentCount, absentCount, lateCount };
   };
@@ -364,13 +369,13 @@ const Attendance = () => {
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">{student.full_name}</TableCell>
                         <TableCell>{student.admission_number}</TableCell>
-                        <TableCell>{student.class}</TableCell>
+                        <TableCell>{student.class_id}</TableCell>
                         <TableCell>
                           {isMarkingAttendance || !attendanceRecord ? (
                             <div className="flex space-x-2">
                               <Button
                                 size="sm"
-                                variant={attendanceRecord?.status === 'present' ? 'default' : 'outline'}
+                                variant={(attendanceRecord as any)?.status === 'present' ? 'default' : 'outline'}
                                 onClick={() => handleAttendanceChange(student.id, 'present')}
                                 className="h-8 w-8 p-0"
                               >
@@ -378,7 +383,7 @@ const Attendance = () => {
                               </Button>
                               <Button
                                 size="sm"
-                                variant={attendanceRecord?.status === 'late' ? 'default' : 'outline'}
+                                variant={(attendanceRecord as any)?.status === 'late' ? 'default' : 'outline'}
                                 onClick={() => handleAttendanceChange(student.id, 'late')}
                                 className="h-8 w-8 p-0"
                               >
@@ -386,7 +391,7 @@ const Attendance = () => {
                               </Button>
                               <Button
                                 size="sm"
-                                variant={attendanceRecord?.status === 'absent' ? 'destructive' : 'outline'}
+                                variant={(attendanceRecord as any)?.status === 'absent' ? 'destructive' : 'outline'}
                                 onClick={() => handleAttendanceChange(student.id, 'absent')}
                                 className="h-8 w-8 p-0"
                               >
@@ -396,12 +401,12 @@ const Attendance = () => {
                           ) : (
                             <Badge 
                               variant={
-                                attendanceRecord.status === 'present' ? 'default' :
-                                attendanceRecord.status === 'late' ? 'secondary' : 'destructive'
+                                (attendanceRecord as any).status === 'present' ? 'default' :
+                                (attendanceRecord as any).status === 'late' ? 'secondary' : 'destructive'
                               }
                               className="capitalize"
                             >
-                              {attendanceRecord.status}
+                              {(attendanceRecord as any).status}
                             </Badge>
                           )}
                         </TableCell>

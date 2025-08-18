@@ -15,19 +15,23 @@ interface Student {
   id: string;
   full_name: string;
   admission_number: string;
-  class: string;
+  class_id: string;
 }
 
 interface Result {
   id?: string;
   student_id: string;
-  subject: string;
-  score: number;
+  subject_id: string;
+  marks: number;
   grade: string;
-  term: string;
-  year: string;
+  term: 'first' | 'second' | 'third';
+  academic_year: string;
   teacher_id: string;
   remarks?: string;
+  // Legacy properties for compatibility
+  subject?: string;
+  score?: number;
+  year?: string;
 }
 
 const Results = () => {
@@ -58,22 +62,19 @@ const Results = () => {
     if (!profile?.branch_id) return;
     
     try {
-      let studentsQuery = query(
-        collection(db, 'students'),
-        where('branch_id', '==', profile.branch_id)
-      );
+      let query = supabase
+        .from('students')
+        .select('*')
+        .eq('branch_id', profile.branch_id);
 
       if (selectedClass) {
-        studentsQuery = query(studentsQuery, where('class', '==', selectedClass));
+        query = query.eq('class_id', selectedClass);
       }
 
-      const studentsSnapshot = await getDocs(studentsQuery);
-      const studentsData = studentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Student[];
+      const { data: studentsData, error } = await query;
+      if (error) throw error;
       
-      setStudents(studentsData);
+      setStudents(studentsData || []);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
@@ -81,13 +82,20 @@ const Results = () => {
 
   const fetchResults = async () => {
     try {
-      const resultsSnapshot = await getDocs(collection(db, 'academic_results'));
-      const resultsData = resultsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Result[];
+      const { data: resultsData, error } = await supabase
+        .from('academic_results')
+        .select('*');
       
-      setResults(resultsData);
+      if (error) throw error;
+      // Transform data to match interface
+      const transformedResults = (resultsData || []).map(result => ({
+        ...result,
+        subject: result.subject_id,
+        score: result.marks,
+        year: result.academic_year,
+        term: result.term === 'first' ? 'Term 1' : result.term === 'second' ? 'Term 2' : 'Term 3'
+      }));
+      setResults(transformedResults as any);
     } catch (error) {
       console.error('Error fetching results:', error);
     } finally {
@@ -130,13 +138,17 @@ const Results = () => {
       if (!existingResult) {
         newTempResults[student.id] = {
           student_id: student.id,
-          subject: selectedSubject,
-          term: selectedTerm,
-          year: selectedYear,
-          teacher_id: profile?.id || '',
-          score: 0,
+          subject_id: selectedSubject,
+          marks: 0,
           grade: 'F',
-          remarks: ''
+          term: selectedTerm === 'Term 1' ? 'first' : selectedTerm === 'Term 2' ? 'second' : 'third',
+          academic_year: selectedYear,
+          teacher_id: profile?.id || '',
+          remarks: '',
+          // Legacy properties for compatibility
+          subject: selectedSubject,
+          score: 0,
+          year: selectedYear
         };
       }
     });
@@ -146,19 +158,27 @@ const Results = () => {
 
   const handleSaveResult = async (studentId: string) => {
     const tempResult = tempResults[studentId];
-    if (!tempResult || !tempResult.score) return;
+    if (!tempResult || (!tempResult.score && !tempResult.marks)) return;
 
     try {
-      const score = Number(tempResult.score);
+      const score = Number(tempResult.score || tempResult.marks);
       const grade = calculateGrade(score);
       
-      await addDoc(collection(db, 'academic_results'), {
-        ...tempResult,
-        score,
-        grade,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+      const { error } = await supabase
+        .from('academic_results')
+        .insert({
+          student_id: tempResult.student_id,
+          subject_id: tempResult.subject || selectedSubject,
+          marks: score,
+          grade,
+          term: selectedTerm === 'Term 1' ? 'first' : selectedTerm === 'Term 2' ? 'second' : 'third',
+          academic_year: tempResult.year || selectedYear,
+          teacher_id: tempResult.teacher_id || profile?.id || '',
+          branch_id: profile?.branch_id || '',
+          remarks: tempResult.remarks || ''
+        });
+      
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -183,15 +203,19 @@ const Results = () => {
 
   const handleUpdateResult = async (resultId: string, updatedData: Partial<Result>) => {
     try {
-      const score = Number(updatedData.score);
+      const score = Number(updatedData.score || updatedData.marks);
       const grade = calculateGrade(score);
       
-      await updateDoc(doc(db, 'academic_results', resultId), {
-        ...updatedData,
-        score,
-        grade,
-        updated_at: new Date().toISOString()
-      });
+      const { error } = await supabase
+        .from('academic_results')
+        .update({
+          marks: score,
+          grade,
+          remarks: updatedData.remarks
+        })
+        .eq('id', resultId);
+      
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -371,7 +395,7 @@ const Results = () => {
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">{student.full_name}</TableCell>
                         <TableCell>{student.admission_number}</TableCell>
-                        <TableCell>{student.class}</TableCell>
+                        <TableCell>{student.class_id}</TableCell>
                         {selectedSubject && (
                           <>
                             <TableCell>
@@ -380,14 +404,15 @@ const Results = () => {
                                   type="number"
                                   min="0"
                                   max="100"
-                                  defaultValue={result?.score || 0}
+                                  defaultValue={(result as any)?.score || result?.marks || 0}
                                   className="w-20"
                                   onChange={(e) => {
                                     const updatedResults = { ...tempResults };
-                                    updatedResults[student.id] = {
-                                      ...result,
-                                      score: Number(e.target.value)
-                                    };
+                                     updatedResults[student.id] = {
+                                       ...result,
+                                       score: Number(e.target.value),
+                                       marks: Number(e.target.value)
+                                     };
                                     setTempResults(updatedResults);
                                   }}
                                 />
@@ -396,25 +421,26 @@ const Results = () => {
                                   type="number"
                                   min="0"
                                   max="100"
-                                  value={tempResults[student.id]?.score || 0}
+                                  value={tempResults[student.id]?.score || tempResults[student.id]?.marks || 0}
                                   className="w-20"
                                   onChange={(e) => {
                                     const updatedResults = { ...tempResults };
-                                    updatedResults[student.id] = {
-                                      ...updatedResults[student.id],
-                                      score: Number(e.target.value)
-                                    };
+                                     updatedResults[student.id] = {
+                                       ...updatedResults[student.id],
+                                       score: Number(e.target.value),
+                                       marks: Number(e.target.value)
+                                     };
                                     setTempResults(updatedResults);
                                   }}
                                 />
                               ) : (
-                                result?.score || '-'
+                                (result as any)?.score || result?.marks || '-'
                               )}
                             </TableCell>
                             <TableCell>
                               {hasTempResult ? (
                                 <Badge variant="outline">
-                                  {calculateGrade(Number(tempResults[student.id]?.score) || 0)}
+                                  {calculateGrade(Number(tempResults[student.id]?.score || tempResults[student.id]?.marks) || 0)}
                                 </Badge>
                               ) : result ? (
                                 <Badge variant={result.grade.startsWith('A') ? 'default' : result.grade.startsWith('B') ? 'secondary' : 'destructive'}>
