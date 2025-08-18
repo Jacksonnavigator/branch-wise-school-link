@@ -36,8 +36,8 @@ const Branches = () => {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    contact_email: '',
-    contact_phone: '',
+    email: '',
+    phone: '',
   });
 
   useEffect(() => {
@@ -79,7 +79,7 @@ const Branches = () => {
       if (error) throw error;
       
       setBranches(prev => [...prev, newBranch]);
-      setFormData({ name: '', address: '', contact_email: '', contact_phone: '' });
+      setFormData({ name: '', address: '', email: '', phone: '' });
       setIsAddDialogOpen(false);
       
       toast({
@@ -146,24 +146,24 @@ const Branches = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contact_email">Contact Email</Label>
+                  <Label htmlFor="email">Contact Email</Label>
                   <Input
-                    id="contact_email"
+                    id="email"
                     type="email"
                     placeholder="Enter contact email"
-                    value={formData.contact_email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contact_phone">Contact Phone</Label>
+                  <Label htmlFor="phone">Contact Phone</Label>
                   <Input
-                    id="contact_phone"
+                    id="phone"
                     type="tel"
                     placeholder="Enter contact phone"
-                    value={formData.contact_phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     required
                   />
                 </div>
@@ -250,12 +250,12 @@ const Branches = () => {
                         
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="h-4 w-4 flex-shrink-0" />
-                          <span>{branch.email || branch.contact_email}</span>
+                          <span>{branch.email}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span>{branch.phone || branch.contact_phone}</span>
+                          <span>{branch.phone}</span>
                         </div>
                       </div>
 
@@ -346,24 +346,24 @@ const Branches = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="contact_email">Contact Email</Label>
+                        <Label htmlFor="email">Contact Email</Label>
                         <Input
-                          id="contact_email"
+                          id="email"
                           type="email"
                           placeholder="Enter contact email"
-                          value={formData.contact_email}
-                          onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+                          value={formData.email}
+                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="contact_phone">Contact Phone</Label>
+                        <Label htmlFor="phone">Contact Phone</Label>
                         <Input
-                          id="contact_phone"
+                          id="phone"
                           type="tel"
                           placeholder="Enter contact phone"
-                          value={formData.contact_phone}
-                          onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                          value={formData.phone}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                           required
                         />
                       </div>
