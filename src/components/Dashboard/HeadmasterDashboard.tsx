@@ -3,8 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, GraduationCap, UserCheck, BookOpen, Calendar, FileText, TrendingUp } from 'lucide-react';
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 
 const HeadmasterDashboard = () => {
   const { profile } = useAuth();
@@ -23,31 +22,35 @@ const HeadmasterDashboard = () => {
       
       try {
         // Fetch branch name
-        const branchDoc = await getDoc(doc(db, 'branches', profile.branch_id));
-        if (branchDoc.exists()) {
-          setBranchName(branchDoc.data().name);
-        }
+        const { data: branch, error: branchError } = await supabase
+          .from('branches')
+          .select('name')
+          .eq('id', profile.branch_id)
+          .single();
+        
+        if (branchError) throw branchError;
+        if (branch) setBranchName(branch.name);
 
         // Fetch students count for this branch
-        const studentsQuery = query(
-          collection(db, 'students'), 
-          where('branch_id', '==', profile.branch_id)
-        );
-        const studentsSnapshot = await getDocs(studentsQuery);
-        const studentsCount = studentsSnapshot.size;
+        const { data: students, error: studentsError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('branch_id', profile.branch_id);
+        
+        if (studentsError) throw studentsError;
 
         // Fetch teachers count for this branch
-        const teachersQuery = query(
-          collection(db, 'profiles'), 
-          where('role', '==', 'teacher'),
-          where('branch_id', '==', profile.branch_id)
-        );
-        const teachersSnapshot = await getDocs(teachersQuery);
-        const teachersCount = teachersSnapshot.size;
+        const { data: teachers, error: teachersError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('role', 'teacher')
+          .eq('branch_id', profile.branch_id);
+        
+        if (teachersError) throw teachersError;
 
         setStats([
-          { title: 'Students', value: studentsCount.toString(), icon: GraduationCap, color: 'text-primary' },
-          { title: 'Teachers', value: teachersCount.toString(), icon: UserCheck, color: 'text-secondary' },
+          { title: 'Students', value: (students?.length || 0).toString(), icon: GraduationCap, color: 'text-primary' },
+          { title: 'Teachers', value: (teachers?.length || 0).toString(), icon: UserCheck, color: 'text-secondary' },
           { title: 'Subjects', value: '8', icon: BookOpen, color: 'text-accent' },
           { title: 'Attendance Rate', value: '95%', icon: TrendingUp, color: 'text-green-600' },
         ]);

@@ -13,9 +13,11 @@ interface Branch {
   id: string;
   name: string;
   address: string;
-  contact_email: string;
-  contact_phone: string;
+  email: string;
+  phone: string;
   created_at: string;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 interface BranchDetailsDialogProps {
