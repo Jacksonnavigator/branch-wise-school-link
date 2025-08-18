@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, addDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddTeacherDialogProps {
@@ -40,30 +42,20 @@ const AddTeacherDialog: React.FC<AddTeacherDialogProps> = ({
     try {
       // Create teacher account with temporary password
       const tempPassword = 'teacher123'; // They'll need to reset this
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: tempPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, tempPassword);
       
-      if (error) throw error;
-      
-      if (data.user) {
+      if (userCredential.user) {
         // Create teacher profile
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: formData.email,
-            full_name: formData.name,
-            role: 'teacher',
-            branch_id: profile.branch_id,
-            phone: formData.phone
-          });
-        
-        if (profileError) throw profileError;
+        await addDoc(collection(db, 'users'), {
+          user_id: userCredential.user.uid,
+          email: formData.email,
+          full_name: formData.name,
+          role: 'teacher',
+          branch_id: profile.branch_id,
+          phone: formData.phone,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
       }
 
       toast({

@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, User, Plus, Search, BookOpen, Phone, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import AddStudentDialog from '@/components/student/AddStudentDialog';
 import StudentDetailsDialog from '@/components/student/StudentDetailsDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -43,12 +44,12 @@ const Students = () => {
     if (!profile?.branch_id) return;
     
     try {
-      const { data: studentsData, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('branch_id', profile.branch_id);
-      
-      if (error) throw error;
+      const studentsQuery = query(
+        collection(db, 'students'),
+        where('branch_id', '==', profile.branch_id)
+      );
+      const studentsSnapshot = await getDocs(studentsQuery);
+      const studentsData = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
       
       setStudents(studentsData || []);
     } catch (error) {
@@ -62,12 +63,7 @@ const Students = () => {
     if (!confirm('Are you sure you want to delete this student?')) return;
     
     try {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', studentId);
-      
-      if (error) throw error;
+      await deleteDoc(doc(db, 'students', studentId));
       
       setStudents(prev => prev.filter(s => s.id !== studentId));
       toast({

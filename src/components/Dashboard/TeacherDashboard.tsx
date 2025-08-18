@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, GraduationCap, UserCheck, BookOpen, Calendar, FileText, TrendingUp } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const TeacherDashboard = () => {
   const { profile } = useAuth();
@@ -22,22 +23,19 @@ const TeacherDashboard = () => {
       
       try {
         // Fetch branch name
-        const { data: branch, error: branchError } = await supabase
-          .from('branches')
-          .select('name')
-          .eq('id', profile.branch_id)
-          .single();
-        
-        if (branchError) throw branchError;
-        if (branch) setBranchName(branch.name);
+        const branchRef = doc(db, 'branches', profile.branch_id);
+        const branchDoc = await getDoc(branchRef);
+        if (branchDoc.exists()) {
+          setBranchName(branchDoc.data().name);
+        }
 
         // Fetch students count for this branch
-        const { data: students, error: studentsError } = await supabase
-          .from('students')
-          .select('id')
-          .eq('branch_id', profile.branch_id);
-        
-        if (studentsError) throw studentsError;
+        const studentsQuery = query(
+          collection(db, 'students'),
+          where('branch_id', '==', profile.branch_id)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         setStats([
           { title: 'My Students', value: (students?.length || 0).toString(), icon: GraduationCap, color: 'text-primary' },

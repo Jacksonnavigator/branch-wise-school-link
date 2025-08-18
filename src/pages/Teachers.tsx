@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, User, Plus, Search, GraduationCap, Mail, Phone, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import AddTeacherDialog from '@/components/Teachers/AddTeacherDialog';
 import TeacherDetailsDialog from '@/components/Teachers/TeacherDetailsDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -41,15 +42,15 @@ const Teachers = () => {
     if (!profile?.branch_id) return;
     
     try {
-      const { data: teachersData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'teacher')
-        .eq('branch_id', profile.branch_id);
+      const teachersQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'teacher'),
+        where('branch_id', '==', profile.branch_id)
+      );
+      const teachersSnapshot = await getDocs(teachersQuery);
+      const teachersData = teachersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
       
-      if (error) throw error;
-      
-      const formattedTeachers = (teachersData || []).map(teacher => ({
+      const formattedTeachers = (teachersData || []).map((teacher: any) => ({
         id: teacher.id,
         name: teacher.full_name,
         email: teacher.email,
@@ -72,12 +73,7 @@ const Teachers = () => {
     if (!confirm('Are you sure you want to delete this teacher?')) return;
     
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', teacherId);
-      
-      if (error) throw error;
+      await deleteDoc(doc(db, 'users', teacherId));
       
       setTeachers(prev => prev.filter(t => t.id !== teacherId));
       toast({

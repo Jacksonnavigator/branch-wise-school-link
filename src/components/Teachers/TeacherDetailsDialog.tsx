@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { User, Phone, Mail, BookOpen, Save } from 'lucide-react';
 
 interface Teacher {
@@ -46,16 +47,13 @@ const TeacherDetailsDialog = ({ open, onOpenChange, teacher, isEditing, onTeache
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          full_name: formData.name,
-          email: formData.email,
-          phone: formData.phone
-        })
-        .eq('id', teacher.id);
-      
-      if (error) throw error;
+      const teacherRef = doc(db, 'users', teacher.id);
+      await updateDoc(teacherRef, {
+        full_name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",

@@ -5,7 +5,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, User, Shield, UserCheck, Calendar, Building2, Mail, Phone, KeyRound } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
@@ -41,14 +43,11 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
       try {
         // Fetch branch name if user has a branch
         if (user.branch_id) {
-          const { data: branch, error } = await supabase
-            .from('branches')
-            .select('name')
-            .eq('id', user.branch_id)
-            .maybeSingle();
-          
-          if (error) throw error;
-          setBranchName(branch?.name || 'Branch Not Found');
+          const branchRef = doc(db, 'branches', user.branch_id);
+          const branchDoc = await getDoc(branchRef);
+          if (branchDoc.exists()) {
+            setBranchName(branchDoc.data().name || 'Branch Not Found');
+          }
         }
 
         // For demo purposes, generate email from user data
@@ -94,9 +93,7 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/auth`
-      });
+      await sendPasswordResetEmail(auth, userEmail);
       toast({
         title: "Password Reset Sent",
         description: "Password reset email has been sent to the user",

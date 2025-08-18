@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Mail, Phone, Users, UserCheck, Edit, Save, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface Branch {
@@ -63,25 +64,23 @@ const BranchDetailsDialog: React.FC<BranchDetailsDialogProps> = ({
     
     try {
       // Fetch students count
-      const { data: students, error: studentsError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('branch_id', branch.id);
-      
-      if (studentsError) throw studentsError;
+      const studentsQuery = query(
+        collection(db, 'students'),
+        where('branch_id', '==', branch.id)
+      );
+      const studentsSnapshot = await getDocs(studentsQuery);
       
       // Fetch teachers count
-      const { data: teachers, error: teachersError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('role', 'teacher')
-        .eq('branch_id', branch.id);
-      
-      if (teachersError) throw teachersError;
+      const teachersQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'teacher'),
+        where('branch_id', '==', branch.id)
+      );
+      const teachersSnapshot = await getDocs(teachersQuery);
       
       setStats({
-        students: students?.length || 0,
-        teachers: teachers?.length || 0,
+        students: studentsSnapshot.size,
+        teachers: teachersSnapshot.size,
       });
     } catch (error) {
       console.error('Error fetching branch stats:', error);
@@ -93,12 +92,11 @@ const BranchDetailsDialog: React.FC<BranchDetailsDialogProps> = ({
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('branches')
-        .update(formData)
-        .eq('id', branch.id);
-      
-      if (error) throw error;
+      const branchRef = doc(db, 'branches', branch.id);
+      await updateDoc(branchRef, {
+        ...formData,
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",

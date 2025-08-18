@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, GraduationCap, UserCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -17,33 +18,21 @@ const AdminDashboard = () => {
     const fetchStats = async () => {
       try {
         // Fetch students count
-        const { data: students, error: studentsError } = await supabase
-          .from('students')
-          .select('id');
-        
-        if (studentsError) throw studentsError;
+        const studentsSnapshot = await getDocs(collection(db, 'students'));
+        const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         // Fetch teachers count
-        const { data: teachers, error: teachersError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('role', 'teacher');
-        
-        if (teachersError) throw teachersError;
+        const teachersQuery = query(collection(db, 'users'), where('role', '==', 'teacher'));
+        const teachersSnapshot = await getDocs(teachersQuery);
+        const teachers = teachersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         // Fetch branches count
-        const { data: branches, error: branchesError } = await supabase
-          .from('branches')
-          .select('id');
-        
-        if (branchesError) throw branchesError;
+        const branchesSnapshot = await getDocs(collection(db, 'branches'));
+        const branches = branchesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         // Fetch total users count
-        const { data: users, error: usersError } = await supabase
-          .from('users')
-          .select('id');
-        
-        if (usersError) throw usersError;
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         setStats([
           { title: 'Total Students', value: (students?.length || 0).toString(), icon: GraduationCap, color: 'text-primary' },

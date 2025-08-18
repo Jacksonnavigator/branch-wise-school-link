@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, User, Plus, Search, Shield, UserCheck, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { UserDetailsDialog } from '@/components/Users/UserDetailsDialog';
 
 interface UserProfile {
@@ -34,24 +35,20 @@ const UserManagement = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const { data: usersData, error } = await supabase
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         
         // Fetch branch names for each user
         const usersWithBranches = await Promise.all(
-          (usersData || []).map(async (user) => {
+          (usersData || []).map(async (user: any) => {
             let branchName = 'No Branch Assigned';
             if (user.branch_id) {
               try {
-                const { data: branch, error: branchError } = await supabase
-                  .from('branches')
-                  .select('name')
-                  .eq('id', user.branch_id)
-                  .single();
+                const branchRef = doc(db, 'branches', user.branch_id);
+                const branchDoc = await getDoc(branchRef);
+                if (branchDoc.exists()) {
+                  branchName = branchDoc.data().name;
+                }
                   
                 if (branchError) throw branchError;
                 branchName = branch?.name || 'Branch Not Found';

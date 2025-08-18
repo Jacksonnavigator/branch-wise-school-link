@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, GraduationCap, UserCheck, BookOpen, Calendar, FileText, TrendingUp } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const HeadmasterDashboard = () => {
   const { profile } = useAuth();
@@ -22,31 +23,28 @@ const HeadmasterDashboard = () => {
       
       try {
         // Fetch branch name
-        const { data: branch, error: branchError } = await supabase
-          .from('branches')
-          .select('name')
-          .eq('id', profile.branch_id)
-          .single();
-        
-        if (branchError) throw branchError;
-        if (branch) setBranchName(branch.name);
+        const branchRef = doc(db, 'branches', profile.branch_id);
+        const branchDoc = await getDoc(branchRef);
+        if (branchDoc.exists()) {
+          setBranchName(branchDoc.data().name);
+        }
 
         // Fetch students count for this branch
-        const { data: students, error: studentsError } = await supabase
-          .from('students')
-          .select('id')
-          .eq('branch_id', profile.branch_id);
-        
-        if (studentsError) throw studentsError;
+        const studentsQuery = query(
+          collection(db, 'students'),
+          where('branch_id', '==', profile.branch_id)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        const students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         // Fetch teachers count for this branch
-        const { data: teachers, error: teachersError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('role', 'teacher')
-          .eq('branch_id', profile.branch_id);
-        
-        if (teachersError) throw teachersError;
+        const teachersQuery = query(
+          collection(db, 'users'),
+          where('role', '==', 'teacher'),
+          where('branch_id', '==', profile.branch_id)
+        );
+        const teachersSnapshot = await getDocs(teachersQuery);
+        const teachers = teachersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         setStats([
           { title: 'Students', value: (students?.length || 0).toString(), icon: GraduationCap, color: 'text-primary' },

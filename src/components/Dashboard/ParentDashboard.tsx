@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, FileText, Users, Bell, BookOpen } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const ParentDashboard = () => {
   const { user, profile } = useAuth();
@@ -18,12 +19,12 @@ const ParentDashboard = () => {
       
       try {
         // Fetch children where guardian_email matches user email
-        const { data: studentsData, error } = await supabase
-          .from('students')
-          .select('*')
-          .eq('guardian_email', user.email);
-        
-        if (error) throw error;
+        const studentsQuery = query(
+          collection(db, 'students'),
+          where('guardian_email', '==', user.email)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        const studentsData = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
         setChildren(studentsData || []);
       } catch (error) {

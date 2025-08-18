@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, BookOpen, Edit, Save, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, getDocs, query, where, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface Student {
   id: string;

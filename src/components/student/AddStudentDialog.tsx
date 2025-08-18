@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddStudentDialogProps {
@@ -40,22 +41,20 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('students')
-        .insert({
-          full_name: formData.fullName,
-          admission_number: formData.admissionNumber,
-          date_of_birth: formData.dateOfBirth,
-          gender: formData.gender as 'male' | 'female',
-          guardian_name: formData.parentContactName,
-          guardian_email: formData.parentContactEmail,
-          guardian_phone: formData.parentContactPhone,
-          branch_id: profile.branch_id,
-          parent_id: null,
-          class_id: profile.branch_id // For now, using branch_id as class_id
-        });
-      
-      if (error) throw error;
+      await addDoc(collection(db, 'students'), {
+        full_name: formData.fullName,
+        admission_number: formData.admissionNumber,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender as 'male' | 'female',
+        guardian_name: formData.parentContactName,
+        guardian_email: formData.parentContactEmail,
+        guardian_phone: formData.parentContactPhone,
+        branch_id: profile.branch_id,
+        parent_id: null,
+        class_id: profile.branch_id, // For now, using branch_id as class_id
+        created_at: new Date(),
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",

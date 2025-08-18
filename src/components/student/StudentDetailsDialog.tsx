@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { User, Phone, Mail, BookOpen, Calendar, Save } from 'lucide-react';
 
 interface Student {
@@ -49,21 +50,18 @@ const StudentDetailsDialog = ({ open, onOpenChange, student, isEditing, onStuden
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('students')
-        .update({
-          full_name: formData.full_name,
-          admission_number: formData.admission_number,
-          date_of_birth: formData.date_of_birth,
-          gender: formData.gender,
-          guardian_name: formData.guardian_name,
-          guardian_email: formData.guardian_email,
-          guardian_phone: formData.guardian_phone,
-          profile_photo_url: formData.profile_photo_url
-        })
-        .eq('id', student.id);
-      
-      if (error) throw error;
+      const studentRef = doc(db, 'students', student.id);
+      await updateDoc(studentRef, {
+        full_name: formData.full_name,
+        admission_number: formData.admission_number,
+        date_of_birth: formData.date_of_birth,
+        gender: formData.gender,
+        guardian_name: formData.guardian_name,
+        guardian_email: formData.guardian_email,
+        guardian_phone: formData.guardian_phone,
+        profile_photo_url: formData.profile_photo_url,
+        updated_at: new Date()
+      });
 
       toast({
         title: "Success",
