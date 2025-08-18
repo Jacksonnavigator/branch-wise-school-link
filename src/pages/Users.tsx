@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, User, Plus, Search, Shield, UserCheck, Calendar } from 'lucide-react';
-import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 import { UserDetailsDialog } from '@/components/Users/UserDetailsDialog';
 
 interface UserProfile {
@@ -35,34 +34,33 @@ const UserManagement = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const usersQuery = query(
-          collection(db, 'profiles'),
-          orderBy('created_at', 'desc')
-        );
-        const usersSnapshot = await getDocs(usersQuery);
-        const usersData = usersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as UserProfile[];
+        const { data: usersData, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
         
         // Fetch branch names for each user
         const usersWithBranches = await Promise.all(
-          usersData.map(async (user) => {
+          (usersData || []).map(async (user) => {
             let branchName = 'No Branch Assigned';
             if (user.branch_id) {
               try {
-                const branchDoc = await getDoc(doc(db, 'branches', user.branch_id));
-                if (branchDoc.exists()) {
-                  branchName = branchDoc.data().name;
-                } else {
-                  branchName = 'Branch Not Found';
-                }
+                const { data: branch, error: branchError } = await supabase
+                  .from('branches')
+                  .select('name')
+                  .eq('id', user.branch_id)
+                  .single();
+                  
+                if (branchError) throw branchError;
+                branchName = branch?.name || 'Branch Not Found';
               } catch (error) {
                 console.error('Error fetching branch:', error);
                 branchName = 'Error Loading Branch';
               }
             }
-            return { ...user, branchName };
+            return { ...user, branchName, name: user.full_name, user_id: user.id };
           })
         );
         

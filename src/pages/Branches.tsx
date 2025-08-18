@@ -8,8 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, Plus, Search, MapPin, Mail, Phone, Users, UserCheck, Eye } from 'lucide-react';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import BranchDetailsDialog from '@/components/Branches/BranchDetailsDialog';
 
@@ -17,9 +16,11 @@ interface Branch {
   id: string;
   name: string;
   address: string;
-  contact_email: string;
-  contact_phone: string;
+  email: string;
+  phone: string;
   created_at: string;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 const Branches = () => {
@@ -45,13 +46,13 @@ const Branches = () => {
 
   const fetchBranches = async () => {
     try {
-      const branchesSnapshot = await getDocs(collection(db, 'branches'));
-      const branchesData = branchesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Branch[];
+      const { data: branchesData, error } = await supabase
+        .from('branches')
+        .select('*');
       
-      setBranches(branchesData);
+      if (error) throw error;
+      
+      setBranches(branchesData || []);
     } catch (error) {
       console.error('Error fetching branches:', error);
     } finally {
@@ -69,19 +70,14 @@ const Branches = () => {
     setIsSubmitting(true);
 
     try {
-      const branchData = {
-        ...formData,
-        created_at: serverTimestamp(),
-      };
-
-      const docRef = await addDoc(collection(db, 'branches'), branchData);
+      const { data: newBranch, error } = await supabase
+        .from('branches')
+        .insert([formData])
+        .select()
+        .single();
       
-      const newBranch: Branch = {
-        id: docRef.id,
-        ...formData,
-        created_at: new Date().toISOString(),
-      };
-
+      if (error) throw error;
+      
       setBranches(prev => [...prev, newBranch]);
       setFormData({ name: '', address: '', contact_email: '', contact_phone: '' });
       setIsAddDialogOpen(false);
@@ -254,12 +250,12 @@ const Branches = () => {
                         
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="h-4 w-4 flex-shrink-0" />
-                          <span>{branch.contact_email}</span>
+                          <span>{branch.email || branch.contact_email}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span>{branch.contact_phone}</span>
+                          <span>{branch.phone || branch.contact_phone}</span>
                         </div>
                       </div>
 

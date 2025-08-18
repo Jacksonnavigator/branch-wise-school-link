@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Mail, Phone, Users, UserCheck, Edit, Save, X } from 'lucide-react';
-import { doc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface Branch {
@@ -62,23 +61,25 @@ const BranchDetailsDialog: React.FC<BranchDetailsDialogProps> = ({
     
     try {
       // Fetch students count
-      const studentsQuery = query(
-        collection(db, 'students'),
-        where('branch_id', '==', branch.id)
-      );
-      const studentsSnapshot = await getDocs(studentsQuery);
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('branch_id', branch.id);
+      
+      if (studentsError) throw studentsError;
       
       // Fetch teachers count
-      const teachersQuery = query(
-        collection(db, 'profiles'),
-        where('role', '==', 'teacher'),
-        where('branch_id', '==', branch.id)
-      );
-      const teachersSnapshot = await getDocs(teachersQuery);
+      const { data: teachers, error: teachersError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'teacher')
+        .eq('branch_id', branch.id);
+      
+      if (teachersError) throw teachersError;
       
       setStats({
-        students: studentsSnapshot.size,
-        teachers: teachersSnapshot.size,
+        students: students?.length || 0,
+        teachers: teachers?.length || 0,
       });
     } catch (error) {
       console.error('Error fetching branch stats:', error);
@@ -90,10 +91,12 @@ const BranchDetailsDialog: React.FC<BranchDetailsDialogProps> = ({
     
     setIsSubmitting(true);
     try {
-      await updateDoc(doc(db, 'branches', branch.id), {
-        ...formData,
-        updated_at: new Date().toISOString(),
-      });
+      const { error } = await supabase
+        .from('branches')
+        .update(formData)
+        .eq('id', branch.id);
+      
+      if (error) throw error;
 
       toast({
         title: "Success",

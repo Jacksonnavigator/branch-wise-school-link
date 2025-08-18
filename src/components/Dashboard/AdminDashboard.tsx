@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, GraduationCap, UserCheck } from 'lucide-react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -18,27 +17,39 @@ const AdminDashboard = () => {
     const fetchStats = async () => {
       try {
         // Fetch students count
-        const studentsSnapshot = await getDocs(collection(db, 'students'));
-        const studentsCount = studentsSnapshot.size;
+        const { data: students, error: studentsError } = await supabase
+          .from('students')
+          .select('id');
+        
+        if (studentsError) throw studentsError;
 
         // Fetch teachers count
-        const teachersQuery = query(collection(db, 'profiles'), where('role', '==', 'teacher'));
-        const teachersSnapshot = await getDocs(teachersQuery);
-        const teachersCount = teachersSnapshot.size;
+        const { data: teachers, error: teachersError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('role', 'teacher');
+        
+        if (teachersError) throw teachersError;
 
         // Fetch branches count
-        const branchesSnapshot = await getDocs(collection(db, 'branches'));
-        const branchesCount = branchesSnapshot.size;
+        const { data: branches, error: branchesError } = await supabase
+          .from('branches')
+          .select('id');
+        
+        if (branchesError) throw branchesError;
 
         // Fetch total users count
-        const usersSnapshot = await getDocs(collection(db, 'profiles'));
-        const usersCount = usersSnapshot.size;
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id');
+        
+        if (usersError) throw usersError;
 
         setStats([
-          { title: 'Total Students', value: studentsCount.toString(), icon: GraduationCap, color: 'text-primary' },
-          { title: 'Total Teachers', value: teachersCount.toString(), icon: UserCheck, color: 'text-secondary' },
-          { title: 'Active Branches', value: branchesCount.toString(), icon: Building2, color: 'text-accent' },
-          { title: 'Total Users', value: usersCount.toString(), icon: Users, color: 'text-muted-foreground' },
+          { title: 'Total Students', value: (students?.length || 0).toString(), icon: GraduationCap, color: 'text-primary' },
+          { title: 'Total Teachers', value: (teachers?.length || 0).toString(), icon: UserCheck, color: 'text-secondary' },
+          { title: 'Active Branches', value: (branches?.length || 0).toString(), icon: Building2, color: 'text-accent' },
+          { title: 'Total Users', value: (users?.length || 0).toString(), icon: Users, color: 'text-muted-foreground' },
         ]);
       } catch (error) {
         console.error('Error fetching stats:', error);
