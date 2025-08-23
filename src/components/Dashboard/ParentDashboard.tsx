@@ -4,12 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, FileText, Users, Bell, BookOpen } from 'lucide-react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 
 const ParentDashboard = () => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -175,7 +179,11 @@ const ParentDashboard = () => {
                 <p className="text-sm text-gray-400">Results are updated by teachers after exams</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full mt-4">
+            <Button 
+              variant="outline" 
+              className="w-full mt-4 interactive-scale"
+              onClick={() => navigate('/results')}
+            >
               View All Results
             </Button>
           </CardContent>
@@ -216,7 +224,11 @@ const ParentDashboard = () => {
                 </div>
               </div>
             </div>
-            <Button variant="outline" className="w-full mt-4">
+            <Button 
+              variant="outline" 
+              className="w-full mt-4 interactive-scale"
+              onClick={() => toast({ title: "Feature Coming Soon!", description: "Notification history will be available soon." })}
+            >
               View All Notifications
             </Button>
           </CardContent>

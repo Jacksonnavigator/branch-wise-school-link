@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, GraduationCap, UserCheck, BookOpen, Calendar, FileText, TrendingUp } from 'lucide-react';
@@ -8,6 +9,7 @@ import { db } from '@/lib/firebase';
 
 const HeadmasterDashboard = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState([
     { title: 'Students', value: '0', icon: GraduationCap, color: 'text-primary' },
     { title: 'Teachers', value: '0', icon: UserCheck, color: 'text-secondary' },
@@ -116,19 +118,39 @@ const HeadmasterDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Button className="gradient-primary hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="premium" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/students')}
+              >
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Add Student
               </Button>
-              <Button className="gradient-secondary hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="secondary" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/teachers')}
+              >
                 <UserCheck className="h-4 w-4 mr-2" />
                 Add Teacher
               </Button>
-              <Button variant="outline" className="hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/attendance')}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
                 Mark Attendance
               </Button>
-              <Button variant="outline" className="hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/reports')}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Generate Report
               </Button>

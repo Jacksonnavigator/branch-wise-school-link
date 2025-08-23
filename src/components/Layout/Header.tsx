@@ -6,10 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, Bell, User, Settings } from 'lucide-react';
 import ProfileDialog from '@/components/Profile/ProfileDialog';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const Header = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   if (!user) return null;
@@ -31,7 +33,8 @@ const Header = () => {
           <Button 
             variant="ghost" 
             size="sm"
-            className="relative hover:bg-accent/50 transition-all duration-200"
+            className="relative hover:bg-accent/50 transition-all duration-200 interactive-scale"
+            onClick={() => toast({ title: "Notifications", description: "You have 3 new notifications!" })}
           >
             <Bell className="h-4 w-4" />
             <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse"></span>
@@ -41,7 +44,7 @@ const Header = () => {
             variant="ghost" 
             size="sm"
             onClick={() => navigate('/settings')}
-            className="hover:bg-accent/50 transition-all duration-200"
+            className="hover:bg-accent/50 transition-all duration-200 interactive-scale"
           >
             <Settings className="h-4 w-4" />
           </Button>
@@ -69,7 +72,7 @@ const Header = () => {
             variant="ghost" 
             size="sm" 
             onClick={signOut}
-            className="hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+            className="hover:bg-destructive/10 hover:text-destructive transition-all duration-200 interactive-scale"
           >
             <LogOut className="h-4 w-4" />
           </Button>

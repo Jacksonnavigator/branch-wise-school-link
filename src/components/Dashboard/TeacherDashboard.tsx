@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, GraduationCap, UserCheck, BookOpen, Calendar, FileText, TrendingUp } from 'lucide-react';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 const TeacherDashboard = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [stats, setStats] = useState([
     { title: 'My Students', value: '0', icon: GraduationCap, color: 'text-primary' },
     { title: 'My Classes', value: '2', icon: BookOpen, color: 'text-secondary' },
@@ -107,19 +111,39 @@ const TeacherDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Button className="gradient-primary hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="premium" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/attendance')}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
                 Mark Attendance
               </Button>
-              <Button className="gradient-secondary hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="secondary" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/results')}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Enter Results
               </Button>
-              <Button variant="outline" className="hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => navigate('/my-students')}
+              >
                 <GraduationCap className="h-4 w-4 mr-2" />
                 View Students
               </Button>
-              <Button variant="outline" className="hover:scale-105 transition-all" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="interactive-scale"
+                onClick={() => toast({ title: "Feature Coming Soon!", description: "Class schedule functionality will be available soon." })}
+              >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Class Schedule
               </Button>
