@@ -470,14 +470,41 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           branch_id: string
-          created_at: string | null
+          created_at: string
           email_sent: boolean | null
           id: string
           message: string
-          read: boolean | null
+          read: boolean
           recipient_id: string
           student_id: string | null
           title: string
@@ -485,51 +512,29 @@ export type Database = {
         }
         Insert: {
           branch_id: string
-          created_at?: string | null
+          created_at?: string
           email_sent?: boolean | null
           id?: string
           message: string
-          read?: boolean | null
+          read?: boolean
           recipient_id: string
           student_id?: string | null
           title: string
-          type: string
+          type?: string
         }
         Update: {
           branch_id?: string
-          created_at?: string | null
+          created_at?: string
           email_sent?: boolean | null
           id?: string
           message?: string
-          read?: boolean | null
+          read?: boolean
           recipient_id?: string
           student_id?: string | null
           title?: string
           type?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       students: {
         Row: {
