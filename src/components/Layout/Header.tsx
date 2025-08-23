@@ -24,7 +24,7 @@ const Header = () => {
       
       // Subscribe to notification changes
       const subscription = supabase
-        .channel('notifications')
+        .channel('notifications-header')
         .on('postgres_changes', 
           { 
             event: '*', 
@@ -54,10 +54,15 @@ const Header = () => {
         .eq('recipient_id', profile.id)
         .eq('read', false);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching unread count:', error);
+        setUnreadCount(0);
+        return;
+      }
       setUnreadCount(count || 0);
     } catch (error) {
       console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
     }
   };
 

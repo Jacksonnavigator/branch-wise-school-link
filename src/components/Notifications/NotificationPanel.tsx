@@ -45,13 +45,18 @@ const NotificationPanel = ({ isOpen, onClose }: NotificationPanelProps) => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        setNotifications([]);
+        return;
+      }
       setNotifications(data || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      setNotifications([]);
       toast({
         title: "Error",
-        description: "Failed to load notifications.",
+        description: "Failed to load notifications. Please try again.",
         variant: "destructive",
       });
     } finally {
