@@ -17,8 +17,7 @@ import {
   FileText,
   Award
 } from 'lucide-react';
-import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Subject {
   id: string;
@@ -60,48 +59,39 @@ const SubjectManagement = () => {
 
       try {
         // Fetch all subjects in branch
-        const subjectsQuery = query(
-          collection(db, 'subjects'),
-          where('branch_id', '==', profile.branch_id),
-          orderBy('name')
-        );
-        const subjectsSnapshot = await getDocs(subjectsQuery);
-        const subjectsData = subjectsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Subject[];
-        setSubjects(subjectsData);
+        const { data: subjectsData, error: subjectsError } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('branch_id', profile.branch_id)
+          .order('name');
+
+        if (subjectsError) throw subjectsError;
+        setSubjects(subjectsData || []);
 
         // Fetch teacher assignments
-        const assignmentsQuery = query(
-          collection(db, 'teacher_assignments'),
-          where('teacher_id', '==', profile.id),
-          where('branch_id', '==', profile.branch_id)
-        );
-        const assignmentsSnapshot = await getDocs(assignmentsQuery);
-        const assignmentsData = assignmentsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as TeacherAssignment[];
-        setAssignments(assignmentsData);
+        const { data: assignmentsData, error: assignmentsError } = await supabase
+          .from('teacher_assignments')
+          .select('*')
+          .eq('teacher_id', profile.id)
+          .eq('branch_id', profile.branch_id);
+
+        if (assignmentsError) throw assignmentsError;
+        setAssignments(assignmentsData || []);
 
         // Filter subjects assigned to this teacher
-        const mySubjectIds = assignmentsData.map(assignment => assignment.subject_id);
-        const mySubjectsData = subjectsData.filter(subject => mySubjectIds.includes(subject.id));
+        const mySubjectIds = assignmentsData?.map(assignment => assignment.subject_id) || [];
+        const mySubjectsData = subjectsData?.filter(subject => mySubjectIds.includes(subject.id)) || [];
         setMySubjects(mySubjectsData);
 
         // Fetch classes
-        const classesQuery = query(
-          collection(db, 'classes'),
-          where('branch_id', '==', profile.branch_id),
-          orderBy('name')
-        );
-        const classesSnapshot = await getDocs(classesQuery);
-        const classesData = classesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Class[];
-        setClasses(classesData);
+        const { data: classesData, error: classesError } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('branch_id', profile.branch_id)
+          .order('name');
+
+        if (classesError) throw classesError;
+        setClasses(classesData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -135,16 +125,20 @@ const SubjectManagement = () => {
     if (!profile?.branch_id || !newSubject.name || !newSubject.code) return;
 
     try {
-      await addDoc(collection(db, 'subjects'), {
-        name: newSubject.name,
-        code: newSubject.code,
-        branch_id: profile.branch_id,
-        created_at: new Date()
-      });
+      const { error } = await supabase
+        .from('subjects')
+        .insert({
+          name: newSubject.name,
+          code: newSubject.code,
+          branch_id: profile.branch_id,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Subject added successfully.",
+        description: "Subject request submitted successfully.",
       });
 
       setNewSubject({ name: '', code: '' });
@@ -156,7 +150,7 @@ const SubjectManagement = () => {
       console.error('Error adding subject:', error);
       toast({
         title: "Error",
-        description: "Failed to add subject. Please try again.",
+        description: "Failed to submit subject request. Please try again.",
         variant: "destructive",
       });
     }

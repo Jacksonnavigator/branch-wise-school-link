@@ -17,8 +17,7 @@ import {
   Mail,
   MapPin
 } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Student {
   id: string;
@@ -53,34 +52,39 @@ const StudentManagement = () => {
       if (!profile?.branch_id) return;
 
       try {
-        // Fetch classes assigned to this teacher
-        const classesQuery = query(
-          collection(db, 'classes'),
-          where('branch_id', '==', profile.branch_id),
-          orderBy('name')
-        );
-        const classesSnapshot = await getDocs(classesQuery);
-        const classesData = classesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Class[];
-        setClasses(classesData);
+        // Fetch classes in the teacher's branch
+        const { data: classesData, error: classesError } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('branch_id', profile.branch_id)
+          .order('name');
 
-        // Fetch students from assigned classes
-        if (classesData.length > 0) {
-          const classIds = classesData.map(cls => cls.id);
-          const studentsQuery = query(
-            collection(db, 'students'),
-            where('branch_id', '==', profile.branch_id),
-            where('class_id', 'in', classIds.slice(0, 10)), // Firestore 'in' limit
-            orderBy('full_name')
-          );
-          const studentsSnapshot = await getDocs(studentsQuery);
-          const studentsData = studentsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as Student[];
-          setStudents(studentsData);
+        if (classesError) throw classesError;
+        setClasses(classesData || []);
+
+        // Fetch students from teacher's assigned classes via teacher_assignments
+        if (profile.id) {
+          const { data: assignmentData, error: assignmentError } = await supabase
+            .from('teacher_assignments')
+            .select('class_id')
+            .eq('teacher_id', profile.id)
+            .eq('branch_id', profile.branch_id);
+
+          if (assignmentError) throw assignmentError;
+
+          const classIds = assignmentData?.map(assignment => assignment.class_id) || [];
+          
+          if (classIds.length > 0) {
+            const { data: studentsData, error: studentsError } = await supabase
+              .from('students')
+              .select('*')
+              .eq('branch_id', profile.branch_id)
+              .in('class_id', classIds)
+              .order('full_name');
+
+            if (studentsError) throw studentsError;
+            setStudents(studentsData || []);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -95,7 +99,7 @@ const StudentManagement = () => {
     };
 
     fetchData();
-  }, [profile?.branch_id, toast]);
+  }, [profile?.branch_id, profile?.id, toast]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

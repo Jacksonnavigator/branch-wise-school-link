@@ -48,8 +48,9 @@ const Sidebar = () => {
         return [
           ...baseItems,
           { name: 'My Students', href: '/my-students', icon: Users },
-          { name: 'Results', href: '/results', icon: FileText },
-          { name: 'Attendance', href: '/attendance', icon: Calendar },
+          { name: 'My Subjects', href: '/my-subjects', icon: FileText },
+          { name: 'Results', href: '/results', icon: Calendar },
+          { name: 'Attendance', href: '/attendance', icon: Bell },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
       
