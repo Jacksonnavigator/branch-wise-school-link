@@ -50,12 +50,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('Auth state changed:', firebaseUser?.uid);
-      setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        // Fetch user profile from Firestore
-        try {
+      try {
+        console.log('Auth state changed:', firebaseUser?.uid);
+        setUser(firebaseUser);
+        
+        if (firebaseUser) {
+          // Fetch user profile from Firestore
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
@@ -73,15 +73,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('User profile not found in Firestore');
             setProfile(null);
           }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
+        } else {
           setProfile(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error in auth state change:', error);
         setProfile(null);
+        // Don't throw here, just set profile to null and continue
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => unsubscribe();
