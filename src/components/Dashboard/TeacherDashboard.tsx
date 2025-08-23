@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import useBranchInfo from '@/hooks/useBranchInfo';
 import StudentManagement from '@/components/Teachers/StudentManagement';
 import SubjectManagement from '@/components/Teachers/SubjectManagement';
+import ClassManagement from '@/components/Teachers/ClassManagement';
 import { 
   Users, 
   BookOpen, 
@@ -160,10 +161,11 @@ const TeacherDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="students">My Students</TabsTrigger>
           <TabsTrigger value="subjects">My Subjects</TabsTrigger>
+          <TabsTrigger value="classes">My Classes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -312,6 +314,10 @@ const TeacherDashboard = () => {
 
         <TabsContent value="subjects">
           <SubjectManagement />
+        </TabsContent>
+
+        <TabsContent value="classes">
+          <ClassManagement />
         </TabsContent>
       </Tabs>
     </div>

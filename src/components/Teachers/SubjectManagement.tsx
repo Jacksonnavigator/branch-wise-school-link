@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -15,15 +16,17 @@ import {
   Users, 
   Calendar,
   FileText,
-  Award
+  Award,
+  GraduationCap,
+  Clock
 } from 'lucide-react';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Subject {
   id: string;
   name: string;
   code: string;
+  description?: string;
   branch_id: string;
   created_at: string;
 }
@@ -35,11 +38,26 @@ interface TeacherAssignment {
   class_id: string;
   academic_year: string;
   branch_id: string;
+  assigned_date: string;
+  is_active: boolean;
 }
 
 interface Class {
   id: string;
   name: string;
+  grade_level?: number;
+  section?: string;
+}
+
+interface SubjectRequest {
+  id: string;
+  teacher_id: string;
+  subject_name: string;
+  subject_code: string;
+  description?: string;
+  justification?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
 }
 
 const SubjectManagement = () => {
@@ -49,41 +67,68 @@ const SubjectManagement = () => {
   const [mySubjects, setMySubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<TeacherAssignment[]>([]);
+  const [subjectRequests, setSubjectRequests] = useState<SubjectRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newSubject, setNewSubject] = useState({ name: '', code: '' });
+  const [newSubject, setNewSubject] = useState({ 
+    name: '', 
+    code: '', 
+    description: '',
+    justification: ''
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       if (!profile?.branch_id) return;
 
       try {
-        // For demo, using mock data since Firebase collections aren't set up
-        const mockSubjects = [
-          { id: '1', name: 'Mathematics', code: 'MATH101', branch_id: profile.branch_id, created_at: new Date().toISOString() },
-          { id: '2', name: 'Physics', code: 'PHY101', branch_id: profile.branch_id, created_at: new Date().toISOString() },
-          { id: '3', name: 'Chemistry', code: 'CHEM101', branch_id: profile.branch_id, created_at: new Date().toISOString() }
-        ] as Subject[];
+        // Fetch all subjects in branch
+        const { data: subjectsData, error: subjectsError } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('branch_id', profile.branch_id)
+          .order('name');
 
-        const mockAssignments = [
-          { id: '1', teacher_id: profile.id, subject_id: '1', class_id: '1', academic_year: '2024-25', branch_id: profile.branch_id },
-          { id: '2', teacher_id: profile.id, subject_id: '2', class_id: '2', academic_year: '2024-25', branch_id: profile.branch_id }
-        ] as TeacherAssignment[];
+        if (subjectsError) throw subjectsError;
+        setSubjects(subjectsData || []);
 
-        const mockClasses = [
-          { id: '1', name: 'Grade 10A' },
-          { id: '2', name: 'Grade 11B' }
-        ] as Class[];
+        // Fetch teacher assignments for this teacher
+        const { data: assignmentsData, error: assignmentsError } = await supabase
+          .from('teacher_assignments')
+          .select('*')
+          .eq('teacher_id', profile.id)
+          .eq('branch_id', profile.branch_id)
+          .eq('is_active', true);
 
-        setSubjects(mockSubjects);
-        setAssignments(mockAssignments);
-        setClasses(mockClasses);
+        if (assignmentsError) throw assignmentsError;
+        setAssignments(assignmentsData || []);
 
         // Filter subjects assigned to this teacher
-        const mySubjectIds = mockAssignments.map(assignment => assignment.subject_id);
-        const mySubjectsData = mockSubjects.filter(subject => mySubjectIds.includes(subject.id));
+        const mySubjectIds = assignmentsData?.map(assignment => assignment.subject_id) || [];
+        const mySubjectsData = subjectsData?.filter(subject => mySubjectIds.includes(subject.id)) || [];
         setMySubjects(mySubjectsData);
+
+        // Fetch classes
+        const { data: classesData, error: classesError } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('branch_id', profile.branch_id)
+          .order('name');
+
+        if (classesError) throw classesError;
+        setClasses(classesData || []);
+
+        // Fetch subject requests for this teacher
+        const { data: requestsData, error: requestsError } = await supabase
+          .from('subject_requests')
+          .select('*')
+          .eq('teacher_id', profile.id)
+          .order('created_at', { ascending: false });
+
+        if (requestsError) throw requestsError;
+        setSubjectRequests(requestsData || []);
+
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -101,7 +146,7 @@ const SubjectManagement = () => {
 
   const filteredSubjects = mySubjects.filter(subject =>
     subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    subject.code.toLowerCase().includes(searchTerm.toLowerCase())
+    subject.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getClassesForSubject = (subjectId: string) => {
@@ -117,32 +162,54 @@ const SubjectManagement = () => {
     if (!profile?.branch_id || !newSubject.name || !newSubject.code) return;
 
     try {
-      await addDoc(collection(db, 'subject_requests'), {
-        name: newSubject.name,
-        code: newSubject.code,
-        branch_id: profile.branch_id,
-        teacher_id: profile.id,
-        status: 'pending',
-        created_at: new Date()
-      });
+      const { error } = await supabase
+        .from('subject_requests')
+        .insert({
+          teacher_id: profile.id,
+          subject_name: newSubject.name,
+          subject_code: newSubject.code,
+          description: newSubject.description,
+          justification: newSubject.justification,
+          branch_id: profile.branch_id,
+          status: 'pending'
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Success",
         description: "Subject request submitted successfully.",
       });
 
-      setNewSubject({ name: '', code: '' });
+      setNewSubject({ name: '', code: '', description: '', justification: '' });
       setIsAddDialogOpen(false);
       
-      // Refresh data
-      window.location.reload();
+      // Refresh requests data
+      const { data: requestsData } = await supabase
+        .from('subject_requests')
+        .select('*')
+        .eq('teacher_id', profile.id)
+        .order('created_at', { ascending: false });
+      
+      setSubjectRequests(requestsData || []);
     } catch (error) {
-      console.error('Error adding subject:', error);
+      console.error('Error adding subject request:', error);
       toast({
         title: "Error",
         description: "Failed to submit subject request. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
+      default:
+        return <Badge variant="outline">Pending</Badge>;
     }
   };
 
@@ -168,19 +235,21 @@ const SubjectManagement = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">My Subjects</h2>
+          <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            My Subjects
+          </h2>
           <p className="text-muted-foreground">
             Manage subjects you're assigned to teach
           </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 button-hover">
+            <Button className="gap-2 button-hover bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
               <Plus className="h-4 w-4" />
               Request New Subject
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Request New Subject</DialogTitle>
               <DialogDescription>
@@ -189,7 +258,7 @@ const SubjectManagement = () => {
             </DialogHeader>
             <form onSubmit={handleAddSubject} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject-name">Subject Name</Label>
+                <Label htmlFor="subject-name">Subject Name *</Label>
                 <Input
                   id="subject-name"
                   value={newSubject.name}
@@ -199,13 +268,33 @@ const SubjectManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="subject-code">Subject Code</Label>
+                <Label htmlFor="subject-code">Subject Code *</Label>
                 <Input
                   id="subject-code"
                   value={newSubject.code}
                   onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })}
                   placeholder="e.g., MATH101"
                   required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newSubject.description}
+                  onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
+                  placeholder="Brief description of the subject"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="justification">Justification</Label>
+                <Textarea
+                  id="justification"
+                  value={newSubject.justification}
+                  onChange={(e) => setNewSubject({ ...newSubject, justification: e.target.value })}
+                  placeholder="Why is this subject needed?"
+                  rows={3}
                 />
               </div>
               <div className="flex justify-end space-x-2">
@@ -229,6 +318,35 @@ const SubjectManagement = () => {
         />
       </div>
 
+      {/* Subject Requests */}
+      {subjectRequests.length > 0 && (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              My Subject Requests
+            </CardTitle>
+            <CardDescription>
+              Track the status of your subject requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {subjectRequests.slice(0, 3).map((request) => (
+                <div key={request.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="font-medium">{request.subject_name}</p>
+                    <p className="text-sm text-muted-foreground">{request.subject_code}</p>
+                  </div>
+                  {getStatusBadge(request.status)}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* My Subjects */}
       {filteredSubjects.length === 0 ? (
         <Card className="border-dashed border-2 border-muted-foreground/25">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -237,7 +355,7 @@ const SubjectManagement = () => {
             <p className="text-sm text-muted-foreground max-w-md">
               {searchTerm 
                 ? "No subjects match your search criteria." 
-                : "You haven't been assigned any subjects yet. Contact your headmaster for subject assignments."}
+                : "You haven't been assigned any subjects yet. Contact your headmaster for subject assignments or request new subjects."}
             </p>
           </CardContent>
         </Card>
@@ -246,22 +364,31 @@ const SubjectManagement = () => {
           {filteredSubjects.map((subject) => {
             const assignedClasses = getClassesForSubject(subject.id);
             return (
-              <Card key={subject.id} className="card-hover border-0 shadow-elegant">
+              <Card key={subject.id} className="card-hover border-0 shadow-elegant hover:shadow-glow transition-all duration-300">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <BookOpen className="h-5 w-5 text-primary" />
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
+                        <BookOpen className="h-6 w-6 text-primary" />
                       </div>
                       <div>
                         <CardTitle className="text-lg">{subject.name}</CardTitle>
-                        <CardDescription>Code: {subject.code}</CardDescription>
+                        <CardDescription className="font-mono text-xs">
+                          Code: {subject.code}
+                        </CardDescription>
                       </div>
                     </div>
-                    <Badge variant="outline">{assignedClasses.length} Classes</Badge>
+                    <Badge variant="outline" className="gap-1">
+                      <GraduationCap className="h-3 w-3" />
+                      {assignedClasses.length} Classes
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {subject.description && (
+                    <p className="text-sm text-muted-foreground">{subject.description}</p>
+                  )}
+                  
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Users className="h-3 w-3" />
@@ -274,15 +401,15 @@ const SubjectManagement = () => {
                   </div>
                   
                   <div className="grid grid-cols-3 gap-2">
-                    <Button size="sm" variant="outline" className="gap-1">
+                    <Button size="sm" variant="outline" className="gap-1 hover:bg-primary/10">
                       <FileText className="h-3 w-3" />
                       Syllabus
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1">
+                    <Button size="sm" variant="outline" className="gap-1 hover:bg-primary/10">
                       <Edit className="h-3 w-3" />
                       Results
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1">
+                    <Button size="sm" variant="outline" className="gap-1 hover:bg-primary/10">
                       <Award className="h-3 w-3" />
                       Reports
                     </Button>

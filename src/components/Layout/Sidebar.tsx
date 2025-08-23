@@ -72,6 +72,7 @@ const Sidebar = () => {
           ...baseItems,
           { name: 'My Students', href: '/my-students', icon: Users },
           { name: 'My Subjects', href: '/my-subjects', icon: BookOpen },
+          { name: 'My Classes', href: '/my-classes', icon: GraduationCap },
           { name: 'Attendance', href: '/attendance', icon: ClipboardList },
           { name: 'Results', href: '/results', icon: BarChart3 },
           { name: 'Notifications', href: '/notifications', icon: Bell },

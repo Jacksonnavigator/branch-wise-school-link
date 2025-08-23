@@ -235,25 +235,37 @@ export type Database = {
         Row: {
           academic_year: string
           branch_id: string
+          class_teacher_id: string | null
           created_at: string | null
+          grade_level: number | null
           id: string
+          max_students: number | null
           name: string
+          section: string | null
           updated_at: string | null
         }
         Insert: {
           academic_year: string
           branch_id: string
+          class_teacher_id?: string | null
           created_at?: string | null
+          grade_level?: number | null
           id?: string
+          max_students?: number | null
           name: string
+          section?: string | null
           updated_at?: string | null
         }
         Update: {
           academic_year?: string
           branch_id?: string
+          class_teacher_id?: string | null
           created_at?: string | null
+          grade_level?: number | null
           id?: string
+          max_students?: number | null
           name?: string
+          section?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -545,15 +557,18 @@ export type Database = {
           created_at: string | null
           date_of_birth: string
           emergency_contact: string | null
+          enrollment_date: string
           full_name: string
           gender: Database["public"]["Enums"]["gender_type"]
           guardian_email: string | null
           guardian_name: string | null
           guardian_phone: string | null
+          guardian_relationship: string | null
           id: string
           medical_conditions: string | null
           parent_id: string | null
           profile_photo_url: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -564,15 +579,18 @@ export type Database = {
           created_at?: string | null
           date_of_birth: string
           emergency_contact?: string | null
+          enrollment_date?: string
           full_name: string
           gender: Database["public"]["Enums"]["gender_type"]
           guardian_email?: string | null
           guardian_name?: string | null
           guardian_phone?: string | null
+          guardian_relationship?: string | null
           id?: string
           medical_conditions?: string | null
           parent_id?: string | null
           profile_photo_url?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -583,15 +601,18 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string
           emergency_contact?: string | null
+          enrollment_date?: string
           full_name?: string
           gender?: Database["public"]["Enums"]["gender_type"]
           guardian_email?: string | null
           guardian_name?: string | null
           guardian_phone?: string | null
+          guardian_relationship?: string | null
           id?: string
           medical_conditions?: string | null
           parent_id?: string | null
           profile_photo_url?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -618,27 +639,78 @@ export type Database = {
           },
         ]
       }
+      subject_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          branch_id: string
+          created_at: string
+          description: string | null
+          id: string
+          justification: string | null
+          status: string | null
+          subject_code: string
+          subject_name: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          justification?: string | null
+          status?: string | null
+          subject_code: string
+          subject_name: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          justification?: string | null
+          status?: string | null
+          subject_code?: string
+          subject_name?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subjects: {
         Row: {
           branch_id: string
           code: string | null
           created_at: string | null
+          description: string | null
           id: string
           name: string
+          updated_at: string
         }
         Insert: {
           branch_id: string
           code?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
           name: string
+          updated_at?: string
         }
         Update: {
           branch_id?: string
           code?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
           name?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -653,30 +725,39 @@ export type Database = {
       teacher_assignments: {
         Row: {
           academic_year: string
+          assigned_date: string
           branch_id: string
           class_id: string
           created_at: string | null
           id: string
+          is_active: boolean | null
           subject_id: string
           teacher_id: string
+          updated_at: string
         }
         Insert: {
           academic_year: string
+          assigned_date?: string
           branch_id: string
           class_id: string
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
           subject_id: string
           teacher_id: string
+          updated_at?: string
         }
         Update: {
           academic_year?: string
+          assigned_date?: string
           branch_id?: string
           class_id?: string
           created_at?: string | null
           id?: string
+          is_active?: boolean | null
           subject_id?: string
           teacher_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
