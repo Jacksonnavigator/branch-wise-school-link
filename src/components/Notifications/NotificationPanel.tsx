@@ -126,8 +126,8 @@ const NotificationPanel = ({ isOpen, onClose }: NotificationPanelProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
