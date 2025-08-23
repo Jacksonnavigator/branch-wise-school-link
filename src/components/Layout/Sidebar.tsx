@@ -70,7 +70,7 @@ const Sidebar = () => {
   const navigationItems = getNavigationItems();
 
   return (
-    <div className="bg-sidebar border-r border-sidebar-border w-64 min-h-screen shadow-soft">
+    <div className="bg-sidebar border-r border-sidebar-border w-64 min-h-screen shadow-soft flex flex-col">
       <div className="p-6 border-b border-sidebar-border/50">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-sidebar-primary to-primary-glow bg-clip-text text-transparent">
           EduManager
@@ -81,7 +81,7 @@ const Sidebar = () => {
         </p>
       </div>
       
-      <nav className="p-4 space-y-1">
+      <nav className="p-4 space-y-1 flex-1">
         {navigationItems.map((item, index) => (
           <NavLink
             key={item.name}
@@ -91,7 +91,7 @@ const Sidebar = () => {
                 'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden',
                 'hover:transform hover:scale-[1.02]',
                 isActive
-                  ? 'bg-gradient-primary text-sidebar-primary-foreground shadow-glow border border-primary/20'
+                  ? 'bg-primary/90 text-white shadow-glow border border-primary/30 font-semibold'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-soft'
               )
             }
@@ -107,15 +107,12 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      <div className="absolute bottom-6 left-4 right-4">
-        <div className="p-4 glass rounded-xl border border-sidebar-border/30">
-          <p className="text-xs text-sidebar-foreground/60 mb-2 font-medium uppercase tracking-wide">Current Branch</p>
+      <div className="p-4 border-t border-sidebar-border/30">
+        <div className="p-3 glass rounded-xl border border-sidebar-border/30">
+          <p className="text-xs text-sidebar-foreground/60 mb-1 font-medium uppercase tracking-wide">Current Branch</p>
           <p className="font-semibold text-sidebar-foreground text-sm">
             {profile?.role === 'admin' ? '🌍 All Branches' : `🏫 ${branchName}`}
           </p>
-          <div className="mt-2 w-full bg-sidebar-accent/30 rounded-full h-1">
-            <div className="bg-gradient-primary h-1 rounded-full w-3/4 animate-pulse"></div>
-          </div>
         </div>
       </div>
     </div>
