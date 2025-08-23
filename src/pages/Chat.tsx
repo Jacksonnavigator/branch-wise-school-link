@@ -8,14 +8,25 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Send, MessageCircle, Search, Users, Circle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/firebase';
+import { 
+  onSnapshot, 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  getDocs, 
+  addDoc, 
+  Timestamp,
+  or
+} from 'firebase/firestore';
 
 interface User {
   id: string;
-  full_name: string;
+  name: string;
   email: string;
   role: string;
-  branch_id: string;
+  branch_id?: string;
   profile_photo?: string;
 }
 
@@ -51,29 +62,24 @@ const Chat = () => {
       fetchUsers();
       fetchConversations();
       
-      // Real-time subscription for messages
-      const messageSubscription = supabase
-        .channel('chat-messages')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'messages'
-          }, 
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              const newMsg = payload.new as Message;
-              if (newMsg.sender_id === selectedUser?.id || newMsg.receiver_id === selectedUser?.id) {
-                fetchMessages(selectedUser.id);
-              }
-              fetchConversations();
-            }
-          }
+      // Real-time subscription for messages using Firebase
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        or(
+          where('sender_id', '==', profile.id),
+          where('receiver_id', '==', profile.id)
         )
-        .subscribe();
+      );
+      
+      const unsubscribe = onSnapshot(messagesQuery, () => {
+        if (selectedUser?.id) {
+          fetchMessages(selectedUser.id);
+        }
+        fetchConversations();
+      });
 
       return () => {
-        messageSubscription.unsubscribe();
+        unsubscribe();
       };
     }
   }, [profile?.id, selectedUser?.id]);
@@ -90,21 +96,23 @@ const Chat = () => {
     if (!profile?.id) return;
 
     try {
-      let query = supabase
-        .from('users')
-        .select('*')
-        .neq('id', profile.id);
+      let usersQuery = query(collection(db, 'users'));
 
-      // Branch-based filtering
+      // Branch-based filtering for Firebase
       if (profile.role === 'teacher' || profile.role === 'headmaster' || profile.role === 'accountant') {
-        query = query.eq('branch_id', profile.branch_id);
+        usersQuery = query(
+          collection(db, 'users'),
+          where('branch_id', '==', profile.branch_id)
+        );
       }
       // Admin can chat with everyone (no filter)
 
-      const { data, error } = await query;
+      const snapshot = await getDocs(usersQuery);
+      const usersData = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(user => user.id !== profile.id) as User[];
 
-      if (error) throw error;
-      setUsers(data || []);
+      setUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -121,16 +129,21 @@ const Chat = () => {
     if (!profile?.id) return;
 
     try {
-      const { data: messagesData, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          sender:users!messages_sender_id_fkey(*)
-        `)
-        .or(`sender_id.eq.${profile.id},receiver_id.eq.${profile.id}`)
-        .order('created_at', { ascending: false });
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        or(
+          where('sender_id', '==', profile.id),
+          where('receiver_id', '==', profile.id)
+        ),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) throw error;
+      const snapshot = await getDocs(messagesQuery);
+      const messagesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+      })) as Message[];
 
       // Group messages by conversation partner
       const conversationMap = new Map<string, Conversation>();
@@ -164,17 +177,25 @@ const Chat = () => {
     if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          sender:users!messages_sender_id_fkey(*)
-        `)
-        .or(`and(sender_id.eq.${profile.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${profile.id})`)
-        .order('created_at', { ascending: true });
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        orderBy('created_at', 'asc')
+      );
 
-      if (error) throw error;
-      setMessages(data || []);
+      const snapshot = await getDocs(messagesQuery);
+      const allMessages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+      })) as Message[];
+
+      // Filter messages for this conversation
+      const conversationMessages = allMessages.filter(message => 
+        (message.sender_id === profile.id && message.receiver_id === userId) ||
+        (message.sender_id === userId && message.receiver_id === profile.id)
+      );
+
+      setMessages(conversationMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -189,15 +210,13 @@ const Chat = () => {
     if (!newMessage.trim() || !selectedUser || !profile?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          content: newMessage.trim(),
-          sender_id: profile.id,
-          receiver_id: selectedUser.id
-        });
-
-      if (error) throw error;
+      await addDoc(collection(db, 'messages'), {
+        content: newMessage.trim(),
+        sender_id: profile.id,
+        receiver_id: selectedUser.id,
+        created_at: Timestamp.now(),
+        read: false
+      });
 
       setNewMessage('');
       fetchMessages(selectedUser.id);
@@ -218,12 +237,12 @@ const Chat = () => {
   };
 
   const filteredUsers = users.filter(user =>
-    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getUserInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
   };
 
   const getRoleColor = (role: string) => {
@@ -286,14 +305,14 @@ const Chat = () => {
                           <Avatar>
                             <AvatarImage src={user.profile_photo} />
                             <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                              {getUserInitials(user.full_name)}
+                              {getUserInitials(user.name)}
                             </AvatarFallback>
                           </Avatar>
                           <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${getRoleColor(user.role)}`}></div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <p className="font-medium text-sm truncate">{user.full_name}</p>
+                            <p className="font-medium text-sm truncate">{user.name}</p>
                             {conversation?.unreadCount > 0 && (
                               <Badge variant="destructive" className="text-xs">
                                 {conversation.unreadCount}
@@ -328,11 +347,11 @@ const Chat = () => {
                 <Avatar>
                   <AvatarImage src={selectedUser.profile_photo} />
                   <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                    {getUserInitials(selectedUser.full_name)}
+                    {getUserInitials(selectedUser.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-lg">{selectedUser.full_name}</CardTitle>
+                  <CardTitle className="text-lg">{selectedUser.name}</CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs capitalize">
                       {selectedUser.role}

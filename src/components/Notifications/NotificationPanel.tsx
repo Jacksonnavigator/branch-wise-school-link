@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, Check, X, AlertCircle, Info, CheckCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/firebase';
+import { collection, query, where, orderBy, limit, getDocs, doc, updateDoc, writeBatch } from 'firebase/firestore';
 
 interface Notification {
   id: string;
@@ -38,19 +39,21 @@ const NotificationPanel = ({ isOpen, onClose }: NotificationPanelProps) => {
     if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('recipient_id', profile.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        setNotifications([]);
-        return;
-      }
-      setNotifications(data || []);
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id),
+        orderBy('created_at', 'desc'),
+        limit(20)
+      );
+      
+      const snapshot = await getDocs(notificationsQuery);
+      const notificationsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+      })) as Notification[];
+      
+      setNotifications(notificationsData);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setNotifications([]);
@@ -66,12 +69,9 @@ const NotificationPanel = ({ isOpen, onClose }: NotificationPanelProps) => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
+      await updateDoc(doc(db, 'notifications', notificationId), {
+        read: true
+      });
 
       setNotifications(prev =>
         prev.map(notif =>
@@ -87,13 +87,20 @@ const NotificationPanel = ({ isOpen, onClose }: NotificationPanelProps) => {
     if (!profile?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('recipient_id', profile.id)
-        .eq('read', false);
-
-      if (error) throw error;
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id),
+        where('read', '==', false)
+      );
+      
+      const snapshot = await getDocs(notificationsQuery);
+      const batch = writeBatch(db);
+      
+      snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { read: true });
+      });
+      
+      await batch.commit();
 
       setNotifications(prev =>
         prev.map(notif => ({ ...notif, read: true }))

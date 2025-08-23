@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, Bell, User, Settings } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/firebase';
+import { onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import ProfileDialog from '@/components/Profile/ProfileDialog';
 import NotificationPanel from '@/components/Notifications/NotificationPanel';
 import { useNavigate } from 'react-router-dom';
@@ -22,24 +23,19 @@ const Header = () => {
     if (profile?.id) {
       fetchUnreadCount();
       
-      // Subscribe to notification changes
-      const subscription = supabase
-        .channel('notifications-header')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'notifications',
-            filter: `recipient_id=eq.${profile.id}`
-          }, 
-          () => {
-            fetchUnreadCount();
-          }
-        )
-        .subscribe();
+      // Subscribe to notification changes using Firebase
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id),
+        where('read', '==', false)
+      );
+      
+      const unsubscribe = onSnapshot(notificationsQuery, () => {
+        fetchUnreadCount();
+      });
 
       return () => {
-        subscription.unsubscribe();
+        unsubscribe();
       };
     }
   }, [profile?.id]);
@@ -48,18 +44,14 @@ const Header = () => {
     if (!profile?.id) return;
 
     try {
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', profile.id)
-        .eq('read', false);
-
-      if (error) {
-        console.error('Error fetching unread count:', error);
-        setUnreadCount(0);
-        return;
-      }
-      setUnreadCount(count || 0);
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id),
+        where('read', '==', false)
+      );
+      
+      const snapshot = await getDocs(notificationsQuery);
+      setUnreadCount(snapshot.size);
     } catch (error) {
       console.error('Error fetching unread count:', error);
       setUnreadCount(0);

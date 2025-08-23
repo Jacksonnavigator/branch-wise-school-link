@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, Check, X, AlertCircle, Info, CheckCircle, Search, Filter } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/firebase';
+import { onSnapshot, collection, query, where, orderBy, getDocs, doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 
 interface Notification {
   id: string;
@@ -30,24 +31,18 @@ const Notifications = () => {
     if (profile?.id) {
       fetchNotifications();
       
-      // Real-time subscription
-      const subscription = supabase
-        .channel('notifications-page')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'notifications',
-            filter: `recipient_id=eq.${profile.id}`
-          }, 
-          () => {
-            fetchNotifications();
-          }
-        )
-        .subscribe();
+      // Real-time subscription using Firebase
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id)
+      );
+      
+      const unsubscribe = onSnapshot(notificationsQuery, () => {
+        fetchNotifications();
+      });
 
       return () => {
-        subscription.unsubscribe();
+        unsubscribe();
       };
     }
   }, [profile?.id]);
@@ -56,14 +51,20 @@ const Notifications = () => {
     if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('recipient_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setNotifications(data || []);
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id),
+        orderBy('created_at', 'desc')
+      );
+      
+      const snapshot = await getDocs(notificationsQuery);
+      const notificationsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: doc.data().created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+      })) as Notification[];
+      
+      setNotifications(notificationsData);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast({
@@ -78,12 +79,9 @@ const Notifications = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
+      await updateDoc(doc(db, 'notifications', notificationId), {
+        read: true
+      });
 
       setNotifications(prev =>
         prev.map(notif =>
@@ -99,13 +97,20 @@ const Notifications = () => {
     if (!profile?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('recipient_id', profile.id)
-        .eq('read', false);
-
-      if (error) throw error;
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('recipient_id', '==', profile.id),
+        where('read', '==', false)
+      );
+      
+      const snapshot = await getDocs(notificationsQuery);
+      const batch = writeBatch(db);
+      
+      snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { read: true });
+      });
+      
+      await batch.commit();
 
       setNotifications(prev =>
         prev.map(notif => ({ ...notif, read: true }))
@@ -127,12 +132,7 @@ const Notifications = () => {
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) throw error;
+      await deleteDoc(doc(db, 'notifications', notificationId));
 
       setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
       
