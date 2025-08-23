@@ -51,7 +51,7 @@ const Auth = () => {
         const branchesSnapshot = await getDocs(collection(db, 'branches'));
         const branchesData = branchesSnapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          name: doc.data().name || 'Unnamed Branch'
         })) as Branch[];
         
         // Check if admin exists
@@ -64,15 +64,20 @@ const Auth = () => {
         console.error('Error fetching data:', error);
         setBranches([]);
         setAdminExists(false);
+        toast({
+          title: "Warning",
+          description: "Could not load branches. Please refresh the page.",
+          variant: "destructive",
+        });
       }
     };
     
     fetchBranchesAndAdminStatus();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const fetchAvailableBranches = async () => {
-      if (role === 'headmaster') {
+      if (role === 'headmaster' && branches.length > 0) {
         try {
           const headmasterQuery = query(collection(db, 'users'), where('role', '==', 'headmaster'));
           const headmasterSnapshot = await getDocs(headmasterQuery);
@@ -102,6 +107,15 @@ const Auth = () => {
 
     try {
       if (isResetMode) {
+        if (!email.trim()) {
+          toast({
+            title: "Error",
+            description: "Email is required",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const { error } = await resetPassword(email);
         if (error) {
           toast({
@@ -126,6 +140,24 @@ const Auth = () => {
           return;
         }
 
+        if (!email.trim()) {
+          toast({
+            title: "Error",
+            description: "Email is required",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (!password.trim()) {
+          toast({
+            title: "Error",
+            description: "Password is required",
+            variant: "destructive",
+          });
+          return;
+        }
+
         if (role !== 'parent' && role !== 'admin' && !branchId) {
           toast({
             title: "Error", 
@@ -136,7 +168,7 @@ const Auth = () => {
         }
 
         const { error } = await signUp(email, password, {
-          name,
+          name: name.trim(),
           role,
           branch_id: (role === 'parent' || role === 'admin') ? undefined : branchId
         });
@@ -150,10 +182,31 @@ const Auth = () => {
         } else {
           toast({
             title: "Sign up successful",
-            description: "Please check your email for verification",
+            description: "Account created successfully. You can now sign in.",
           });
+          // Switch to sign in mode after successful signup
+          setIsSignUp(false);
+          setPassword('');
         }
       } else {
+        if (!email.trim()) {
+          toast({
+            title: "Error",
+            description: "Email is required",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (!password.trim()) {
+          toast({
+            title: "Error",
+            description: "Password is required",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const { error } = await signIn(email, password);
         
         if (error) {
@@ -165,6 +218,7 @@ const Auth = () => {
         }
       }
     } catch (error: any) {
+      console.error('Auth error:', error);
       toast({
         title: "Error",
         description: error.message || "An unexpected error occurred",
@@ -174,7 +228,6 @@ const Auth = () => {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
@@ -350,7 +403,6 @@ const Auth = () => {
                   <span className="bg-card px-2 text-muted-foreground font-medium">Or continue with</span>
                 </div>
               </div>
-
             </>
           )}
           

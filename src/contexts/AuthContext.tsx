@@ -50,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Auth state changed:', firebaseUser?.uid);
       setUser(firebaseUser);
       
       if (firebaseUser) {
@@ -58,18 +59,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            console.log('User profile loaded:', userData);
             setProfile({
               id: firebaseUser.uid,
               user_id: firebaseUser.uid,
-              name: userData.full_name,
-              role: userData.role,
-              branch_id: userData.branch_id,
+              name: userData.full_name || userData.name || 'Unknown User',
+              role: userData.role || 'teacher',
+              branch_id: userData.branch_id || null,
               profile_photo: userData.profile_photo || null,
               must_change_password: userData.must_change_password || false
             });
+          } else {
+            console.error('User profile not found in Firestore');
+            setProfile(null);
           }
         } catch (error) {
           console.error('Error fetching profile:', error);
+          setProfile(null);
         }
       } else {
         setProfile(null);
@@ -83,47 +89,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData: { name: string; role: string; branch_id?: string }) => {
     try {
+      console.log('Attempting to create user:', email, userData);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
       // Create profile in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      const profileData = {
         email: email,
         full_name: userData.name,
         role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent',
         branch_id: userData.branch_id || null,
         created_at: new Date(),
         updated_at: new Date()
-      });
+      };
+
+      console.log('Creating user profile:', profileData);
+      await setDoc(doc(db, 'users', user.uid), profileData);
       
       return { error: null };
     } catch (error: any) {
+      console.error('Sign up error:', error);
       return { error };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Attempting to sign in:', email);
       await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
     } catch (error: any) {
+      console.error('Sign in error:', error);
       return { error };
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
+      console.log('Sending password reset to:', email);
       await sendPasswordResetEmail(auth, email);
       return { error: null };
     } catch (error: any) {
+      console.error('Password reset error:', error);
       return { error };
     }
   };
 
   const signOut = async () => {
     try {
+      console.log('Signing out user');
       await firebaseSignOut(auth);
     } catch (error: any) {
+      console.error('Sign out error:', error);
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",

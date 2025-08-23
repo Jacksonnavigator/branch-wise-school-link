@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,11 +21,21 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
-    name: profile?.name || '',
-    profile_photo: profile?.profile_photo || ''
+    name: '',
+    profile_photo: ''
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Update form data when profile changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        profile_photo: profile.profile_photo || ''
+      });
+    }
+  }, [profile]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,7 +67,7 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
-      setFormData({ ...formData, profile_photo: dataUrl });
+      setFormData(prev => ({ ...prev, profile_photo: dataUrl }));
       setUploading(false);
       
       toast({
@@ -79,14 +90,37 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      toast({
+        title: "Error",
+        description: "User not found. Please sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        full_name: formData.name,
+      const updateData: any = {
+        full_name: formData.name.trim(),
         updated_at: new Date()
-      });
+      };
+
+      // Only update profile photo if it has changed
+      if (formData.profile_photo !== profile.profile_photo) {
+        updateData.profile_photo = formData.profile_photo;
+      }
+
+      await updateDoc(doc(db, 'users', user.uid), updateData);
 
       toast({
         title: "Success",
@@ -105,6 +139,10 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
     }
   };
 
+  if (!profile) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -121,7 +159,7 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
               <Avatar className="h-24 w-24">
                 <AvatarImage src={formData.profile_photo} />
                 <AvatarFallback className="text-lg">
-                  {formData.name.split(' ').map(n => n[0]).join('')}
+                  {formData.name ? formData.name.split(' ').map(n => n[0]).join('') : 'U'}
                 </AvatarFallback>
               </Avatar>
               <Button
@@ -163,7 +201,7 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               required
             />
           </div>
