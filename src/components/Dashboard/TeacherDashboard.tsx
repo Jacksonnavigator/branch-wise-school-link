@@ -7,9 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import useBranchInfo from '@/hooks/useBranchInfo';
-import StudentManagement from '@/components/Teachers/StudentManagement';
-import SubjectManagement from '@/components/Teachers/SubjectManagement';
-import ClassManagement from '@/components/Teachers/ClassManagement';
 import { 
   Users, 
   BookOpen, 
@@ -160,166 +157,145 @@ const TeacherDashboard = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="students">My Students</TabsTrigger>
-          <TabsTrigger value="subjects">My Subjects</TabsTrigger>
-          <TabsTrigger value="classes">My Classes</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {dashboardStats.map((stat, index) => (
-              <Card key={stat.title} className="card-hover border-0 shadow-elegant">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                  <div className="flex items-center space-x-2 text-xs">
-                    <span className="text-muted-foreground">{stat.description}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {stat.trend}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="card-hover border-0 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ClipboardCheck className="h-5 w-5 text-primary" />
-                  Quick Actions
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {dashboardStats.map((stat, index) => (
+            <Card key={stat.title} className="card-hover border-0 shadow-elegant">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
                 </CardTitle>
-                <CardDescription>Frequently used teacher tools</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  onClick={() => handleQuickAction('attendance')} 
-                  className="w-full justify-start gap-2 button-hover"
-                  variant="ghost"
-                >
-                  <UserCheck className="h-4 w-4" />
-                  Mark Attendance
-                </Button>
-                <Button 
-                  onClick={() => handleQuickAction('results')} 
-                  className="w-full justify-start gap-2 button-hover"
-                  variant="ghost"
-                >
-                  <FileText className="h-4 w-4" />
-                  Enter Results
-                </Button>
-                <Button 
-                  onClick={() => handleQuickAction('students')} 
-                  className="w-full justify-start gap-2 button-hover"
-                  variant="ghost"
-                >
-                  <Users className="h-4 w-4" />
-                  View Students
-                </Button>
-                <Button 
-                  onClick={() => handleQuickAction('schedule')} 
-                  className="w-full justify-start gap-2 button-hover"
-                  variant="ghost"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Class Schedule
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover border-0 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-primary" />
-                  Teaching Overview
-                </CardTitle>
-                <CardDescription>Your current teaching assignments</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Branch</span>
-                    <span className="font-medium">{branchName}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Academic Year</span>
-                    <span className="font-medium">2024-25</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Term</span>
-                    <span className="font-medium">First Term</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Academic Progress</span>
-                    <span className="font-medium">65%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-gradient-primary h-2 rounded-full" style={{ width: '65%' }}></div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover border-0 shadow-elegant">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  Today's Schedule
-                </CardTitle>
-                <CardDescription>Your classes for today</CardDescription>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                    <div>
-                      <div className="font-medium">Mathematics</div>
-                      <div className="text-muted-foreground">Grade 10A</div>
-                    </div>
-                    <Badge variant="outline">9:00 AM</Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                    <div>
-                      <div className="font-medium">Physics</div>
-                      <div className="text-muted-foreground">Grade 11B</div>
-                    </div>
-                    <Badge variant="outline">11:00 AM</Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                    <div>
-                      <div className="font-medium">Mathematics</div>
-                      <div className="text-muted-foreground">Grade 9A</div>
-                    </div>
-                    <Badge variant="outline">2:00 PM</Badge>
-                  </div>
+                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className="flex items-center space-x-2 text-xs">
+                  <span className="text-muted-foreground">{stat.description}</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {stat.trend}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
+          ))}
+        </div>
 
-        <TabsContent value="students">
-          <StudentManagement />
-        </TabsContent>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="card-hover border-0 shadow-elegant">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-primary" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription>Frequently used teacher tools</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={() => handleQuickAction('attendance')} 
+                className="w-full justify-start gap-2 button-hover"
+                variant="ghost"
+              >
+                <UserCheck className="h-4 w-4" />
+                Mark Attendance
+              </Button>
+              <Button 
+                onClick={() => handleQuickAction('results')} 
+                className="w-full justify-start gap-2 button-hover"
+                variant="ghost"
+              >
+                <FileText className="h-4 w-4" />
+                Enter Results
+              </Button>
+              <Button 
+                onClick={() => handleQuickAction('students')} 
+                className="w-full justify-start gap-2 button-hover"
+                variant="ghost"
+              >
+                <Users className="h-4 w-4" />
+                View Students
+              </Button>
+              <Button 
+                onClick={() => handleQuickAction('schedule')} 
+                className="w-full justify-start gap-2 button-hover"
+                variant="ghost"
+              >
+                <Calendar className="h-4 w-4" />
+                Class Schedule
+              </Button>
+            </CardContent>
+          </Card>
 
-        <TabsContent value="subjects">
-          <SubjectManagement />
-        </TabsContent>
+          <Card className="card-hover border-0 shadow-elegant">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-primary" />
+                Teaching Overview
+              </CardTitle>
+              <CardDescription>Your current teaching assignments</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Branch</span>
+                  <span className="font-medium">{branchName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Academic Year</span>
+                  <span className="font-medium">2024-25</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Term</span>
+                  <span className="font-medium">First Term</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Academic Progress</span>
+                  <span className="font-medium">65%</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-gradient-primary h-2 rounded-full" style={{ width: '65%' }}></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <TabsContent value="classes">
-          <ClassManagement />
-        </TabsContent>
-      </Tabs>
+          <Card className="card-hover border-0 shadow-elegant">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Today's Schedule
+              </CardTitle>
+              <CardDescription>Your classes for today</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
+                  <div>
+                    <div className="font-medium">Mathematics</div>
+                    <div className="text-muted-foreground">Grade 10A</div>
+                  </div>
+                  <Badge variant="outline">9:00 AM</Badge>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
+                  <div>
+                    <div className="font-medium">Physics</div>
+                    <div className="text-muted-foreground">Grade 11B</div>
+                  </div>
+                  <Badge variant="outline">11:00 AM</Badge>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
+                  <div>
+                    <div className="font-medium">Mathematics</div>
+                    <div className="text-muted-foreground">Grade 9A</div>
+                  </div>
+                  <Badge variant="outline">2:00 PM</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
