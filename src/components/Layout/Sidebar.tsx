@@ -11,7 +11,16 @@ import {
   FileText, 
   Calendar,
   Bell,
-  Settings
+  Settings,
+  MessageCircle,
+  GraduationCap,
+  Building2,
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  DollarSign,
+  UserPlus,
+  Baby
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -29,9 +38,17 @@ const Sidebar = () => {
       case 'admin':
         return [
           ...baseItems,
-          { name: 'Users', href: '/users', icon: Users },
-          { name: 'Branches', href: '/branches', icon: FileText },
-          { name: 'Analytics', href: '/analytics', icon: Calendar },
+          { name: 'Students', href: '/students', icon: Users },
+          { name: 'Teachers', href: '/teachers', icon: GraduationCap },
+          { name: 'Users', href: '/users', icon: UserPlus },
+          { name: 'Branches', href: '/branches', icon: Building2 },
+          { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+          { name: 'Reports', href: '/reports', icon: ClipboardList },
+          { name: 'Attendance', href: '/attendance', icon: ClipboardList },
+          { name: 'Results', href: '/results', icon: BarChart3 },
+          { name: 'Fees', href: '/fees', icon: DollarSign },
+          { name: 'Notifications', href: '/notifications', icon: Bell },
+          { name: 'Chat', href: '/chat', icon: MessageCircle },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
       
@@ -39,8 +56,14 @@ const Sidebar = () => {
         return [
           ...baseItems,
           { name: 'Students', href: '/students', icon: Users },
-          { name: 'Teachers', href: '/teachers', icon: User },
-          { name: 'Reports', href: '/reports', icon: FileText },
+          { name: 'Teachers', href: '/teachers', icon: GraduationCap },
+          { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+          { name: 'Reports', href: '/reports', icon: ClipboardList },
+          { name: 'Attendance', href: '/attendance', icon: ClipboardList },
+          { name: 'Results', href: '/results', icon: BarChart3 },
+          { name: 'Fees', href: '/fees', icon: DollarSign },
+          { name: 'Notifications', href: '/notifications', icon: Bell },
+          { name: 'Chat', href: '/chat', icon: MessageCircle },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
       
@@ -48,26 +71,33 @@ const Sidebar = () => {
         return [
           ...baseItems,
           { name: 'My Students', href: '/my-students', icon: Users },
-          { name: 'My Subjects', href: '/my-subjects', icon: FileText },
-          { name: 'Results', href: '/results', icon: Calendar },
-          { name: 'Attendance', href: '/attendance', icon: Bell },
+          { name: 'My Subjects', href: '/my-subjects', icon: BookOpen },
+          { name: 'Attendance', href: '/attendance', icon: ClipboardList },
+          { name: 'Results', href: '/results', icon: BarChart3 },
+          { name: 'Notifications', href: '/notifications', icon: Bell },
+          { name: 'Chat', href: '/chat', icon: MessageCircle },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
       
       case 'parent':
         return [
           ...baseItems,
-          { name: 'My Children', href: '/children', icon: Users },
-          { name: 'Reports', href: '/reports', icon: FileText },
-          { name: 'Fees', href: '/fees', icon: Calendar },
+          { name: 'My Children', href: '/children', icon: Baby },
+          { name: 'Fees', href: '/fees', icon: DollarSign },
+          { name: 'Results', href: '/results', icon: BarChart3 },
+          { name: 'Notifications', href: '/notifications', icon: Bell },
+          { name: 'Chat', href: '/chat', icon: MessageCircle },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
 
       case 'accountant':
         return [
           ...baseItems,
-          { name: 'Fees', href: '/fees', icon: Calendar },
-          { name: 'Reports', href: '/reports', icon: FileText },
+          { name: 'Students', href: '/students', icon: Users },
+          { name: 'Fees', href: '/fees', icon: DollarSign },
+          { name: 'Reports', href: '/reports', icon: ClipboardList },
+          { name: 'Notifications', href: '/notifications', icon: Bell },
+          { name: 'Chat', href: '/chat', icon: MessageCircle },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
       

@@ -21,6 +21,8 @@ import Attendance from "./pages/Attendance";
 import Fees from "./pages/Fees";
 import Settings from "./pages/Settings";
 import Children from "./pages/Children";
+import Notifications from "./pages/Notifications";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +50,8 @@ const App = () => (
               <Route path="results" element={<Results />} />
               <Route path="attendance" element={<Attendance />} />
               <Route path="fees" element={<Fees />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="chat" element={<Chat />} />
               <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
