@@ -17,7 +17,8 @@ import {
   FileText,
   Award
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 interface Subject {
   id: string;
@@ -58,40 +59,31 @@ const SubjectManagement = () => {
       if (!profile?.branch_id) return;
 
       try {
-        // Fetch all subjects in branch
-        const { data: subjectsData, error: subjectsError } = await supabase
-          .from('subjects')
-          .select('*')
-          .eq('branch_id', profile.branch_id)
-          .order('name');
+        // For demo, using mock data since Firebase collections aren't set up
+        const mockSubjects = [
+          { id: '1', name: 'Mathematics', code: 'MATH101', branch_id: profile.branch_id, created_at: new Date().toISOString() },
+          { id: '2', name: 'Physics', code: 'PHY101', branch_id: profile.branch_id, created_at: new Date().toISOString() },
+          { id: '3', name: 'Chemistry', code: 'CHEM101', branch_id: profile.branch_id, created_at: new Date().toISOString() }
+        ] as Subject[];
 
-        if (subjectsError) throw subjectsError;
-        setSubjects(subjectsData || []);
+        const mockAssignments = [
+          { id: '1', teacher_id: profile.id, subject_id: '1', class_id: '1', academic_year: '2024-25', branch_id: profile.branch_id },
+          { id: '2', teacher_id: profile.id, subject_id: '2', class_id: '2', academic_year: '2024-25', branch_id: profile.branch_id }
+        ] as TeacherAssignment[];
 
-        // Fetch teacher assignments
-        const { data: assignmentsData, error: assignmentsError } = await supabase
-          .from('teacher_assignments')
-          .select('*')
-          .eq('teacher_id', profile.id)
-          .eq('branch_id', profile.branch_id);
+        const mockClasses = [
+          { id: '1', name: 'Grade 10A' },
+          { id: '2', name: 'Grade 11B' }
+        ] as Class[];
 
-        if (assignmentsError) throw assignmentsError;
-        setAssignments(assignmentsData || []);
+        setSubjects(mockSubjects);
+        setAssignments(mockAssignments);
+        setClasses(mockClasses);
 
         // Filter subjects assigned to this teacher
-        const mySubjectIds = assignmentsData?.map(assignment => assignment.subject_id) || [];
-        const mySubjectsData = subjectsData?.filter(subject => mySubjectIds.includes(subject.id)) || [];
+        const mySubjectIds = mockAssignments.map(assignment => assignment.subject_id);
+        const mySubjectsData = mockSubjects.filter(subject => mySubjectIds.includes(subject.id));
         setMySubjects(mySubjectsData);
-
-        // Fetch classes
-        const { data: classesData, error: classesError } = await supabase
-          .from('classes')
-          .select('*')
-          .eq('branch_id', profile.branch_id)
-          .order('name');
-
-        if (classesError) throw classesError;
-        setClasses(classesData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -125,16 +117,14 @@ const SubjectManagement = () => {
     if (!profile?.branch_id || !newSubject.name || !newSubject.code) return;
 
     try {
-      const { error } = await supabase
-        .from('subjects')
-        .insert({
-          name: newSubject.name,
-          code: newSubject.code,
-          branch_id: profile.branch_id,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      await addDoc(collection(db, 'subject_requests'), {
+        name: newSubject.name,
+        code: newSubject.code,
+        branch_id: profile.branch_id,
+        teacher_id: profile.id,
+        status: 'pending',
+        created_at: new Date()
+      });
 
       toast({
         title: "Success",

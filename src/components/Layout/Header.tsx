@@ -78,7 +78,7 @@ const Header = () => {
             variant="ghost" 
             size="sm"
             className="relative hover:bg-accent/50 transition-all duration-200 interactive-scale"
-            onClick={() => setIsNotificationOpen(true)}
+            onClick={() => navigate('/notifications')}
           >
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (

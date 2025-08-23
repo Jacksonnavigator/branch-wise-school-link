@@ -53,8 +53,7 @@ const Notifications = () => {
     try {
       const notificationsQuery = query(
         collection(db, 'notifications'),
-        where('recipient_id', '==', profile.id),
-        orderBy('created_at', 'desc')
+        where('recipient_id', '==', profile.id)
       );
       
       const snapshot = await getDocs(notificationsQuery);
@@ -63,6 +62,9 @@ const Notifications = () => {
         ...doc.data(),
         created_at: doc.data().created_at?.toDate?.()?.toISOString() || new Date().toISOString()
       })) as Notification[];
+      
+      // Sort by created_at manually since we removed orderBy
+      notificationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       setNotifications(notificationsData);
     } catch (error) {
