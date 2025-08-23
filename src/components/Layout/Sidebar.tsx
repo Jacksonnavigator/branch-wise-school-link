@@ -70,39 +70,53 @@ const Sidebar = () => {
   const navigationItems = getNavigationItems();
 
   return (
-    <div className="bg-sidebar text-sidebar-foreground w-64 min-h-screen p-4">
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-sidebar-primary">EduManager</h2>
-        <p className="text-sm text-sidebar-foreground/70">
+    <div className="bg-sidebar border-r border-sidebar-border w-64 min-h-screen shadow-soft">
+      <div className="p-6 border-b border-sidebar-border/50">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-sidebar-primary to-primary-glow bg-clip-text text-transparent">
+          EduManager
+        </h2>
+        <p className="text-sm text-sidebar-foreground/70 mt-1 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
           {branchName || 'Loading...'}
         </p>
       </div>
       
-      <nav className="space-y-2">
-        {navigationItems.map((item) => (
+      <nav className="p-4 space-y-1">
+        {navigationItems.map((item, index) => (
           <NavLink
             key={item.name}
             to={item.href}
             className={({ isActive }) =>
               cn(
-                'flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200',
+                'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden',
+                'hover:transform hover:scale-[1.02]',
                 isActive
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  ? 'bg-gradient-primary text-sidebar-primary-foreground shadow-glow border border-primary/20'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-soft'
               )
             }
+            style={{ animationDelay: `${index * 0.05}s` }}
           >
-            <item.icon className="h-5 w-5" />
-            <span>{item.name}</span>
+            <div className="relative z-10 flex items-center space-x-3">
+              <item.icon className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+              <span className="font-medium">{item.name}</span>
+            </div>
+            {/* Hover effect background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary-glow/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </NavLink>
         ))}
       </nav>
 
-      <div className="mt-8 p-4 bg-sidebar-accent rounded-lg">
-        <p className="text-sm text-sidebar-foreground/70 mb-2">Current Branch</p>
-        <p className="font-medium text-sidebar-foreground">
-          {profile?.role === 'admin' ? 'All Branches' : branchName}
-        </p>
+      <div className="absolute bottom-6 left-4 right-4">
+        <div className="p-4 glass rounded-xl border border-sidebar-border/30">
+          <p className="text-xs text-sidebar-foreground/60 mb-2 font-medium uppercase tracking-wide">Current Branch</p>
+          <p className="font-semibold text-sidebar-foreground text-sm">
+            {profile?.role === 'admin' ? '🌍 All Branches' : `🏫 ${branchName}`}
+          </p>
+          <div className="mt-2 w-full bg-sidebar-accent/30 rounded-full h-1">
+            <div className="bg-gradient-primary h-1 rounded-full w-3/4 animate-pulse"></div>
+          </div>
+        </div>
       </div>
     </div>
   );

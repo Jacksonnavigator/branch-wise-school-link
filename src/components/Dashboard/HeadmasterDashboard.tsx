@@ -63,13 +63,16 @@ const HeadmasterDashboard = () => {
   }, [profile?.branch_id]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-          Headmaster Dashboard
-        </h2>
-        <p className="text-muted-foreground">Welcome back, {profile?.name}</p>
-        <p className="text-sm text-muted-foreground">Managing: {branchName}</p>
+    <div className="space-y-8 animate-fade-in p-6">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary-glow/5 rounded-2xl blur-3xl"></div>
+        <div className="relative">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+            Headmaster Dashboard
+          </h2>
+          <p className="text-muted-foreground mt-2 text-lg">Welcome back, {profile?.name} 👨‍🎓</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">Managing: {branchName}</p>
+        </div>
       </div>
 
       {loading ? (
@@ -80,17 +83,22 @@ const HeadmasterDashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] animate-scale-in glass border-border" 
+            <Card key={index} className="card-interactive group glass border-border/50 relative overflow-hidden" 
                   style={{ animationDelay: `${index * 0.1}s` }}>
-              <CardContent className="p-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary-glow/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">{stat.title}</p>
+                    <p className="text-3xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">{stat.value}</p>
                   </div>
-                  <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
-                    <stat.icon className="h-6 w-6 text-primary-foreground" />
+                  <div className="w-14 h-14 gradient-primary rounded-2xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
+                    <stat.icon className="h-7 w-7 text-primary-foreground" />
                   </div>
+                </div>
+                <div className="mt-4 flex items-center text-xs text-muted-foreground">
+                  <span className="w-1 h-1 bg-green-500 rounded-full mr-2"></span>
+                  Branch specific
                 </div>
               </CardContent>
             </Card>

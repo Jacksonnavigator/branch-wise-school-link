@@ -72,28 +72,41 @@ const ParentDashboard = () => {
   const child = children[0]; // Show first child (can be extended for multiple children)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900">Parent Dashboard</h2>
-        <p className="text-gray-600">Monitor your child's academic progress</p>
-        <p className="text-sm text-gray-500">Welcome, {profile?.name}</p>
+    <div className="space-y-8 animate-fade-in p-6">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary-glow/5 rounded-2xl blur-3xl"></div>
+        <div className="relative">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+            Parent Dashboard
+          </h2>
+          <p className="text-muted-foreground mt-2 text-lg">Monitor your child's academic progress</p>
+          <p className="text-sm text-muted-foreground/70 mt-1">Welcome back, {profile?.name} 👋</p>
+        </div>
       </div>
 
       {/* Child Profile Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardHeader>
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
+      <Card className="glass border-border/50 relative overflow-hidden hover-lift">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary-glow/5 to-accent/10"></div>
+        <CardHeader className="relative z-10">
+          <div className="flex items-center space-x-6">
+            <Avatar className="h-20 w-20 ring-4 ring-primary/20 hover:ring-primary/40 transition-all duration-300">
               <AvatarImage src={child.profile_photo} />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-xl bg-gradient-primary text-primary-foreground">
                 {child.full_name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <CardTitle className="text-xl">{child.full_name}</CardTitle>
-              <CardDescription className="text-base">
-                {child.class} • Admission #: {child.admission_number}
+            <div className="flex-1">
+              <CardTitle className="text-2xl text-foreground mb-2">{child.full_name}</CardTitle>
+              <CardDescription className="text-base text-muted-foreground">
+                📚 {child.class} • 🎫 Admission #: {child.admission_number}
               </CardDescription>
+              <div className="mt-3 flex items-center gap-4 text-sm">
+                <span className="flex items-center gap-1 text-green-600">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Active Student
+                </span>
+                <span className="text-muted-foreground">Academic Year 2024-25</span>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -101,38 +114,47 @@ const ParentDashboard = () => {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="card-interactive glass border-border/50 group">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Attendance Rate</p>
-                <p className="text-3xl font-bold text-green-600">95%</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Attendance Rate</p>
+                <p className="text-3xl font-bold text-green-600 group-hover:text-green-500 transition-colors">95%</p>
+                <p className="text-xs text-green-600/70 mt-1">🎯 Excellent</p>
               </div>
-              <Calendar className="h-8 w-8 text-green-600" />
+              <div className="w-12 h-12 gradient-success rounded-2xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="card-interactive glass border-border/50 group">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Fees</p>
-                <p className="text-3xl font-bold text-orange-600">$250</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Pending Fees</p>
+                <p className="text-3xl font-bold text-orange-600 group-hover:text-orange-500 transition-colors">$250</p>
+                <p className="text-xs text-orange-600/70 mt-1">💳 Due Soon</p>
               </div>
-              <FileText className="h-8 w-8 text-orange-600" />
+              <div className="w-12 h-12 gradient-warning rounded-2xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="card-interactive glass border-border/50 group">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Recent Grades</p>
-                <p className="text-3xl font-bold text-blue-600">A-</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Recent Grades</p>
+                <p className="text-3xl font-bold text-blue-600 group-hover:text-blue-500 transition-colors">A-</p>
+                <p className="text-xs text-blue-600/70 mt-1">📈 Great Work</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600" />
+              <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center shadow-glow group-hover:scale-110 transition-transform duration-300">
+                <Users className="h-6 w-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>

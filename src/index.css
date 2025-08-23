@@ -9,7 +9,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 247 55% 99%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -21,12 +21,13 @@ All colors MUST be HSL.
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 262.1 83.3% 57.8%;
+    --primary-light: 221.2 83.2% 63.3%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 84% 4.9%;
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 222.2 84% 4.9%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 84% 4.9%;
@@ -40,34 +41,33 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
     
-    /* Beautiful gradients */
+    /* Modern gradients */
     --gradient-primary: linear-gradient(135deg, hsl(221.2 83.2% 53.3%), hsl(262.1 83.3% 57.8%));
-    --gradient-secondary: linear-gradient(135deg, hsl(210 40% 96%), hsl(214.3 31.8% 91.4%));
+    --gradient-secondary: linear-gradient(135deg, hsl(210 40% 98%), hsl(214.3 31.8% 94.4%));
     --gradient-accent: linear-gradient(135deg, hsl(262.1 83.3% 57.8%), hsl(295.7 72.2% 39.8%));
+    --gradient-success: linear-gradient(135deg, hsl(142.1 76.2% 36.3%), hsl(142.1 70.6% 45.3%));
+    --gradient-warning: linear-gradient(135deg, hsl(45.4 93.4% 47.5%), hsl(35.5 91.7% 32.9%));
+    --gradient-danger: linear-gradient(135deg, hsl(0 84.2% 60.2%), hsl(0 65.6% 51.6%));
     
-    /* Glassmorphism effects */
-    --glass-bg: rgba(255, 255, 255, 0.25);
-    --glass-border: rgba(255, 255, 255, 0.18);
+    /* Glass effects */
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
     
-    /* Shadows */
+    /* Enhanced shadows */
     --shadow-elegant: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-glow: 0 0 20px rgba(var(--primary), 0.3);
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 255 255% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214.3 31.8% 91.4%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
   }
 
   .dark {
@@ -125,6 +125,7 @@ All colors MUST be HSL.
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
   
   .gradient-primary {
@@ -139,12 +140,32 @@ All colors MUST be HSL.
     background: var(--gradient-accent);
   }
   
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+  
+  .gradient-warning {
+    background: var(--gradient-warning);
+  }
+  
+  .gradient-danger {
+    background: var(--gradient-danger);
+  }
+  
   .shadow-elegant {
     box-shadow: var(--shadow-elegant);
   }
   
   .shadow-soft {
     box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
   }
   
   .animate-float {
@@ -162,6 +183,27 @@ All colors MUST be HSL.
   
   .animate-scale-in {
     animation: scale-in 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out forwards;
+  }
+  
+  .hover-lift {
+    transition: all 0.3s ease;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-elegant);
+  }
+  
+  .card-interactive {
+    @apply hover-lift cursor-pointer transition-all duration-300 hover:shadow-glow hover:border-primary/20;
   }
 }
 
@@ -205,5 +247,27 @@ All colors MUST be HSL.
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
