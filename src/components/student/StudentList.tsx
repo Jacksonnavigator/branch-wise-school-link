@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,24 @@ import { Users, User } from 'lucide-react';
 const StudentList = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // No mock data - will fetch from Firebase when data is available
-  const students: Student[] = [];
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        // Fetch real students from Supabase here
+        // This will be implemented when Supabase integration is ready
+        setStudents([]);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
 
   const filteredStudents = students.filter(student =>
     student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||

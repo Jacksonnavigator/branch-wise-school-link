@@ -16,7 +16,7 @@ interface Profile {
   id: string;
   user_id: string;
   name: string;
-  role: 'admin' | 'headmaster' | 'teacher' | 'parent';
+  role: 'admin' | 'headmaster' | 'teacher' | 'parent' | 'accountant';
   branch_id: string | null;
   profile_photo: string | null;
   must_change_password?: boolean;
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profileData = {
         email: email,
         full_name: userData.name,
-        role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent',
+        role: userData.role as 'admin' | 'headmaster' | 'teacher' | 'parent' | 'accountant',
         branch_id: userData.branch_id || null,
         created_at: new Date(),
         updated_at: new Date()

@@ -61,6 +61,14 @@ const Sidebar = () => {
           { name: 'Fees', href: '/fees', icon: Calendar },
           { name: 'Settings', href: '/settings', icon: Settings }
         ];
+
+      case 'accountant':
+        return [
+          ...baseItems,
+          { name: 'Fees', href: '/fees', icon: Calendar },
+          { name: 'Reports', href: '/reports', icon: FileText },
+          { name: 'Settings', href: '/settings', icon: Settings }
+        ];
       
       default:
         return [...baseItems, { name: 'Settings', href: '/settings', icon: Settings }];

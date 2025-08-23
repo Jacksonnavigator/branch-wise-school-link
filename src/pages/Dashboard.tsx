@@ -5,6 +5,7 @@ import AdminDashboard from '@/components/Dashboard/AdminDashboard';
 import ParentDashboard from '@/components/Dashboard/ParentDashboard';
 import HeadmasterDashboard from '@/components/Dashboard/HeadmasterDashboard';
 import TeacherDashboard from '@/components/Dashboard/TeacherDashboard';
+import AccountantDashboard from '@/components/Dashboard/AccountantDashboard';
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
@@ -21,6 +22,8 @@ const Dashboard = () => {
         return <HeadmasterDashboard />;
       case 'teacher':
         return <TeacherDashboard />;
+      case 'accountant':
+        return <AccountantDashboard />;
       default:
         return <div>Dashboard not available for this role.</div>;
     }
