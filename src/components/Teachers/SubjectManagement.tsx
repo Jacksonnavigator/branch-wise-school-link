@@ -80,64 +80,39 @@ const SubjectManagement = () => {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!profile?.branch_id) return;
+    if (!profile?.branch_id) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        // Fetch all subjects in branch
-        const subjectsQuery = query(
-          collection(db, 'subjects'),
-          where('branch_id', '==', profile.branch_id),
-          orderBy('name')
-        );
-        const subjectsSnapshot = await getDocs(subjectsQuery);
-        const subjectsData = subjectsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Subject[];
-        setSubjects(subjectsData);
-
-        // Mock data for now since we're switching to Firebase
-        setMySubjects([
-          {
-            id: '1',
-            name: 'Mathematics',
-            code: 'MATH101',
-            description: 'Advanced Mathematics for Grade 10',
-            branch_id: profile.branch_id,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: '2',
-            name: 'Physics',
-            code: 'PHY101',
-            description: 'Fundamentals of Physics',
-            branch_id: profile.branch_id,
-            created_at: new Date().toISOString()
-          }
-        ]);
-
-        setClasses([
-          { id: '1', name: 'Grade 10A', grade_level: 10, section: 'A' },
-          { id: '2', name: 'Grade 11B', grade_level: 11, section: 'B' }
-        ]);
-
-        setSubjectRequests([]);
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load subject data.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+    // Mock data for subjects assigned to this teacher
+    setMySubjects([
+      {
+        id: '1',
+        name: 'Mathematics',
+        code: 'MATH101',
+        description: 'Advanced Mathematics for Grade 10',
+        branch_id: profile.branch_id,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Physics',
+        code: 'PHY101',
+        description: 'Fundamentals of Physics',
+        branch_id: profile.branch_id,
+        created_at: new Date().toISOString()
       }
-    };
+    ]);
 
-    fetchData();
-  }, [profile?.branch_id, profile?.id, toast]);
+    setClasses([
+      { id: '1', name: 'Grade 10A', grade_level: 10, section: 'A' },
+      { id: '2', name: 'Grade 11B', grade_level: 11, section: 'B' }
+    ]);
+
+    setSubjectRequests([]);
+    setLoading(false);
+  }, [profile?.branch_id]);
 
   const filteredSubjects = mySubjects.filter(subject =>
     subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

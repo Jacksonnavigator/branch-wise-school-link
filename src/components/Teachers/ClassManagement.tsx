@@ -40,64 +40,53 @@ const ClassManagement = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      if (!profile?.branch_id) return;
+    if (!profile?.branch_id) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        // Mock data for classes assigned to this teacher
-        setClasses([
-          {
-            id: '1',
-            name: 'Grade 10A',
-            grade_level: 10,
-            section: 'A',
-            student_count: 28,
-            subjects: ['Mathematics', 'Physics'],
-            schedule: 'Mon, Wed, Fri - 9:00 AM',
-            teacher_id: profile.id,
-            branch_id: profile.branch_id,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: '2',
-            name: 'Grade 11B',
-            grade_level: 11,
-            section: 'B',
-            student_count: 25,
-            subjects: ['Mathematics', 'Chemistry'],
-            schedule: 'Tue, Thu - 11:00 AM',
-            teacher_id: profile.id,
-            branch_id: profile.branch_id,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: '3',
-            name: 'Grade 9A',
-            grade_level: 9,
-            section: 'A',
-            student_count: 30,
-            subjects: ['Mathematics'],
-            schedule: 'Mon, Wed, Fri - 2:00 PM',
-            teacher_id: profile.id,
-            branch_id: profile.branch_id,
-            created_at: new Date().toISOString()
-          }
-        ]);
-
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load class data.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+    // Mock data for classes assigned to this teacher
+    setClasses([
+      {
+        id: '1',
+        name: 'Grade 10A',
+        grade_level: 10,
+        section: 'A',
+        student_count: 28,
+        subjects: ['Mathematics', 'Physics'],
+        schedule: 'Mon, Wed, Fri - 9:00 AM',
+        teacher_id: profile.id,
+        branch_id: profile.branch_id,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Grade 11B',
+        grade_level: 11,
+        section: 'B',
+        student_count: 25,
+        subjects: ['Mathematics', 'Chemistry'],
+        schedule: 'Tue, Thu - 11:00 AM',
+        teacher_id: profile.id,
+        branch_id: profile.branch_id,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '3',
+        name: 'Grade 9A',
+        grade_level: 9,
+        section: 'A',
+        student_count: 30,
+        subjects: ['Mathematics'],
+        schedule: 'Mon, Wed, Fri - 2:00 PM',
+        teacher_id: profile.id,
+        branch_id: profile.branch_id,
+        created_at: new Date().toISOString()
       }
-    };
+    ]);
 
-    fetchClasses();
-  }, [profile?.branch_id, profile?.id, toast]);
+    setLoading(false);
+  }, [profile?.branch_id]);
 
   const filteredClasses = classes.filter(cls =>
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
