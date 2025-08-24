@@ -24,6 +24,8 @@ import Children from "./pages/Children";
 import Notifications from "./pages/Notifications";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
+import MyClasses from "./pages/MyClasses";
+import MySubjects from "./pages/MySubjects";
 
 const queryClient = new QueryClient();
 
@@ -41,8 +43,8 @@ const App = () => (
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="students" element={<Students />} />
               <Route path="my-students" element={<Students />} />
-              <Route path="my-subjects" element={<Teachers />} />
-              <Route path="my-classes" element={<Teachers />} />
+              <Route path="my-subjects" element={<MySubjects />} />
+              <Route path="my-classes" element={<MyClasses />} />
               <Route path="children" element={<Children />} />
               <Route path="users" element={<Users />} />
               <Route path="branches" element={<Branches />} />
