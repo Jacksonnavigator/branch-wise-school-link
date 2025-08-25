@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { rateLimiter, auditLog, sanitizeInput, isSessionValid, generateSessionToken } from '@/lib/crypto';
+import { signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface SecureAuthState {
   user: any;
@@ -55,40 +56,9 @@ export const useSecureAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
 
-      // Attempt authentication with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: sanitizedEmail,
-        password: credentials.password,
-      });
-
-      if (error) {
-        // Record failed attempt
-        rateLimiter.recordAttempt(sanitizedEmail, false);
-        
-        await auditLog({
-          action: 'login_failed',
-          details: { 
-            email: sanitizedEmail, 
-            error: error.message,
-            remaining_attempts: rateLimiter.getRemainingAttempts(sanitizedEmail)
-          },
-          ipAddress: clientIP,
-        });
-
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          remainingAttempts: rateLimiter.getRemainingAttempts(sanitizedEmail)
-        }));
-
-        toast({
-          title: "Authentication Failed",
-          description: `Invalid credentials. ${rateLimiter.getRemainingAttempts(sanitizedEmail)} attempts remaining.`,
-          variant: "destructive",
-        });
-
-        return { error: error.message };
-      }
+      // Attempt authentication with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, sanitizedEmail, credentials.password);
+      const data = { user: userCredential.user };
 
       // Success - reset rate limiting
       rateLimiter.recordAttempt(sanitizedEmail, true);
@@ -109,7 +79,7 @@ export const useSecureAuth = () => {
       // Audit successful login
       await auditLog({
         action: 'login_success',
-        userId: data.user.id,
+        userId: data.user.uid,
         details: { 
           email: sanitizedEmail,
           remember_me: credentials.rememberMe,
@@ -134,20 +104,28 @@ export const useSecureAuth = () => {
       return { data };
 
     } catch (error: any) {
-      setAuthState(prev => ({ ...prev, loading: false }));
+      // Record failed attempt
+      rateLimiter.recordAttempt(sanitizedEmail, false);
       
       await auditLog({
-        action: 'login_error',
+        action: 'login_failed',
         details: { 
           email: sanitizedEmail, 
-          error: error.message 
+          error: error.message,
+          remaining_attempts: rateLimiter.getRemainingAttempts(sanitizedEmail)
         },
         ipAddress: clientIP,
       });
 
+      setAuthState(prev => ({
+        ...prev,
+        loading: false,
+        remainingAttempts: rateLimiter.getRemainingAttempts(sanitizedEmail)
+      }));
+
       toast({
-        title: "Sign In Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Authentication Failed",
+        description: `Invalid credentials. ${rateLimiter.getRemainingAttempts(sanitizedEmail)} attempts remaining.`,
         variant: "destructive",
       });
 
@@ -160,11 +138,7 @@ export const useSecureAuth = () => {
    */
   const secureSignOut = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Logout error:', error);
-      }
+      await firebaseSignOut(auth);
 
       // Clear all session data
       localStorage.removeItem('session_token');
@@ -175,7 +149,7 @@ export const useSecureAuth = () => {
       // Audit logout
       await auditLog({
         action: 'logout',
-        userId: authState.user?.id,
+        userId: authState.user?.uid,
         details: { timestamp: new Date().toISOString() },
       });
 
@@ -197,11 +171,11 @@ export const useSecureAuth = () => {
       
       await auditLog({
         action: 'logout_error',
-        userId: authState.user?.id,
+        userId: authState.user?.uid,
         details: { error: error.message },
       });
     }
-  }, [authState.user?.id, toast]);
+  }, [authState.user?.uid, toast]);
 
   /**
    * Validate current session
@@ -229,10 +203,10 @@ export const useSecureAuth = () => {
         return false;
       }
 
-      // Validate with Supabase
-      const { data: { user }, error } = await supabase.auth.getUser();
+      // Validate with Firebase
+      const user = auth.currentUser;
       
-      if (error || !user) {
+      if (!user) {
         await secureSignOut();
         return false;
       }
@@ -265,7 +239,7 @@ export const useSecureAuth = () => {
       if (lastUserAgent && lastUserAgent !== userAgent) {
         await auditLog({
           action: 'suspicious_activity',
-          userId: authState.user?.id,
+          userId: authState.user?.uid,
           details: { 
             reason: 'user_agent_changed',
             old_user_agent: lastUserAgent,
@@ -285,7 +259,7 @@ export const useSecureAuth = () => {
     } catch (error) {
       console.error('Suspicious activity check failed:', error);
     }
-  }, [authState.user?.id, toast]);
+  }, [authState.user?.uid, toast]);
 
   /**
    * Initialize secure authentication

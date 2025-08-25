@@ -17,7 +17,8 @@ import {
   Mail,
   MapPin
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface Student {
   id: string;
@@ -58,39 +59,39 @@ const StudentManagement = () => {
 
       try {
         // Fetch classes in the teacher's branch
-        const { data: classesData, error: classesError } = await supabase
-          .from('classes')
-          .select('*')
-          .eq('branch_id', profile.branch_id)
-          .order('name');
-
-        if (classesError) throw classesError;
-        setClasses(classesData || []);
+        const classesQuery = query(
+          collection(db, 'classes'),
+          where('branch_id', '==', profile.branch_id),
+          orderBy('name')
+        );
+        const classesSnapshot = await getDocs(classesQuery);
+        const classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Class[];
+        setClasses(classesData);
 
         // Fetch students from teacher's assigned classes via teacher_assignments
         if (profile.id) {
-          const { data: assignmentData, error: assignmentError } = await supabase
-            .from('teacher_assignments')
-            .select('class_id')
-            .eq('teacher_id', profile.id)
-            .eq('branch_id', profile.branch_id)
-            .eq('is_active', true);
-
-          if (assignmentError) throw assignmentError;
-
-          const classIds = assignmentData?.map(assignment => assignment.class_id) || [];
+          const assignmentsQuery = query(
+            collection(db, 'teacher_assignments'),
+            where('teacher_id', '==', profile.id),
+            where('branch_id', '==', profile.branch_id),
+            where('is_active', '==', true)
+          );
+          const assignmentsSnapshot = await getDocs(assignmentsQuery);
+          const classIds = assignmentsSnapshot.docs.map(doc => doc.data().class_id);
           
           if (classIds.length > 0) {
-            const { data: studentsData, error: studentsError } = await supabase
-              .from('students')
-              .select('*')
-              .eq('branch_id', profile.branch_id)
-              .in('class_id', classIds)
-              .eq('status', 'active')
-              .order('full_name');
-
-            if (studentsError) throw studentsError;
-            setStudents(studentsData || []);
+            const studentsQuery = query(
+              collection(db, 'students'),
+              where('branch_id', '==', profile.branch_id),
+              where('status', '==', 'active'),
+              orderBy('full_name')
+            );
+            const studentsSnapshot = await getDocs(studentsQuery);
+            const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Student[];
+            
+            // Filter students by assigned classes
+            const filteredStudents = allStudents.filter(student => classIds.includes(student.class_id));
+            setStudents(filteredStudents);
           }
         }
       } catch (error) {

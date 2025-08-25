@@ -1,5 +1,6 @@
 // Cryptographic utilities for the school management system
-import { supabase } from '@/integrations/supabase/client';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 /**
  * Cryptographic constants and configurations
@@ -254,8 +255,8 @@ export const auditLog = async (event: {
       severity: getSeverityLevel(event.action),
     };
 
-    // Log to Supabase audit table (would need to be created)
-    await supabase.from('security_audit_logs').insert(logEntry);
+    // Log to Firebase Firestore
+    await addDoc(collection(db, 'security_audit_logs'), logEntry);
   } catch (error) {
     console.error('Failed to log security event:', error);
   }
