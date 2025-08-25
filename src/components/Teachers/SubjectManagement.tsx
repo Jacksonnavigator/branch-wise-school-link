@@ -80,39 +80,92 @@ const SubjectManagement = () => {
   });
 
   useEffect(() => {
-    if (!profile?.branch_id) {
+    if (!profile?.branch_id || !profile?.id) {
       setLoading(false);
       return;
     }
 
-    // Mock data for subjects assigned to this teacher
-    setMySubjects([
-      {
-        id: '1',
-        name: 'Mathematics',
-        code: 'MATH101',
-        description: 'Advanced Mathematics for Grade 10',
-        branch_id: profile.branch_id,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        name: 'Physics',
-        code: 'PHY101',
-        description: 'Fundamentals of Physics',
-        branch_id: profile.branch_id,
-        created_at: new Date().toISOString()
+    const fetchData = async () => {
+      try {
+        // Fetch teacher assignments to get subjects
+        const assignmentsQuery = query(
+          collection(db, 'teacher_assignments'),
+          where('teacher_id', '==', profile.id),
+          where('branch_id', '==', profile.branch_id),
+          where('is_active', '==', true)
+        );
+        const assignmentsSnapshot = await getDocs(assignmentsQuery);
+        
+        const subjectIds = new Set<string>();
+        const classIds = new Set<string>();
+        const assignmentData: TeacherAssignment[] = [];
+        
+        assignmentsSnapshot.docs.forEach(doc => {
+          const assignment = { id: doc.id, ...doc.data() } as TeacherAssignment;
+          subjectIds.add(assignment.subject_id);
+          classIds.add(assignment.class_id);
+          assignmentData.push(assignment);
+        });
+
+        setAssignments(assignmentData);
+
+        // Fetch subjects
+        if (subjectIds.size > 0) {
+          const subjectsQuery = query(
+            collection(db, 'subjects'),
+            where('branch_id', '==', profile.branch_id)
+          );
+          const subjectsSnapshot = await getDocs(subjectsQuery);
+          const subjectsData = subjectsSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(sub => subjectIds.has(sub.id)) as Subject[];
+          
+          setMySubjects(subjectsData);
+        }
+
+        // Fetch classes
+        if (classIds.size > 0) {
+          const classesQuery = query(
+            collection(db, 'classes'),
+            where('branch_id', '==', profile.branch_id)
+          );
+          const classesSnapshot = await getDocs(classesQuery);
+          const classesData = classesSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(cls => classIds.has(cls.id)) as Class[];
+          
+          setClasses(classesData);
+        }
+
+        // Fetch subject requests
+        const requestsQuery = query(
+          collection(db, 'subject_requests'),
+          where('teacher_id', '==', profile.id),
+          where('branch_id', '==', profile.branch_id),
+          orderBy('created_at', 'desc')
+        );
+        const requestsSnapshot = await getDocs(requestsQuery);
+        const requestsData = requestsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as SubjectRequest[];
+        
+        setSubjectRequests(requestsData);
+
+      } catch (error) {
+        console.error('Error fetching subject data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load subject data.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-    ]);
+    };
 
-    setClasses([
-      { id: '1', name: 'Grade 10A', grade_level: 10, section: 'A' },
-      { id: '2', name: 'Grade 11B', grade_level: 11, section: 'B' }
-    ]);
-
-    setSubjectRequests([]);
-    setLoading(false);
-  }, [profile?.branch_id]);
+    fetchData();
+  }, [profile?.branch_id, profile?.id, toast]);
 
   const filteredSubjects = mySubjects.filter(subject =>
     subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,7 +217,7 @@ const SubjectManagement = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -203,7 +256,7 @@ const SubjectManagement = () => {
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 button-hover bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+            <Button className="gap-2 hover-lift bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-elegant hover:shadow-glow transition-all duration-300">
               <Plus className="h-4 w-4" />
               Request New Subject
             </Button>
