@@ -26,7 +26,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'headmaster' | 'teacher' | 'parent'>('teacher');
+  const [role, setRole] = useState<'admin' | 'headmaster' | 'teacher' | 'parent' | 'accountant'>('teacher');
   const [branchId, setBranchId] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -160,8 +160,8 @@ const Auth = () => {
 
         if (role !== 'parent' && role !== 'admin' && !branchId) {
           toast({
-            title: "Error", 
-            description: "Campus selection is required for headmasters and teachers",
+            title: "Error",
+            description: "Campus selection is required for headmasters, teachers and accountants",
             variant: "destructive",
           });
           return;
@@ -293,7 +293,7 @@ const Auth = () => {
                     <Building2 className="h-4 w-4" />
                     Role
                   </Label>
-                  <Select value={role} onValueChange={(value: 'admin' | 'headmaster' | 'teacher' | 'parent') => setRole(value)}>
+                  <Select value={role} onValueChange={(value: 'admin' | 'headmaster' | 'teacher' | 'parent' | 'accountant') => setRole(value)}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
@@ -301,6 +301,7 @@ const Auth = () => {
                       {!adminExists && <SelectItem value="admin">Administrator</SelectItem>}
                       <SelectItem value="headmaster">Headmaster</SelectItem>
                       <SelectItem value="teacher">Teacher</SelectItem>
+                      <SelectItem value="accountant">Accountant</SelectItem>
                       <SelectItem value="parent">Parent</SelectItem>
                     </SelectContent>
                   </Select>

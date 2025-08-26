@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection: users can read their own profile, admins can read all
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if request.auth != null && request.resource.data.role in ['parent','teacher','headmaster','accountant','admin'];
+      allow update: if request.auth != null && request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Branches: only admins can create/update/delete
+    match /branches/{branchId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Students: admins and headmasters can create/update/delete, accountants can read
+    match /students/{studentId} {
+      allow read: if request.auth != null && (
+        resource.data.branch_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.branch_id || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create, update, delete: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin','headmaster']
+      );
+    }
+
+    // Payments: accountants, headmasters and admins can create/read/delete in their branch
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && (
+        resource.data.branch_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.branch_id || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create: if request.auth != null && (
+        request.resource.data.branch_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.branch_id &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['accountant','headmaster','admin']
+      );
+      allow update, delete: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['accountant','headmaster','admin'] &&
+        resource.data.branch_id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.branch_id
+      );
+    }
+
+    // Fallback: deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
