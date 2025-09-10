@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -324,31 +325,7 @@ const Chat = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card/50 backdrop-blur-sm p-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <MessageSquare className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Team Chat
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Stay connected with your colleagues
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              <Circle className="h-2 w-2 fill-green-500 text-green-500" />
-              {users.filter(u => u.is_online).length} Online
-            </Badge>
-          </div>
-        </div>
-      </div>
+      <PageHeader title="Team Chat" subtitle="Stay connected with your colleagues" actions={<Badge variant="outline" className="gap-1"><Circle className="h-2 w-2 fill-green-500 text-green-500" />{users.filter(u => u.is_online).length} Online</Badge>} />
 
       <div className="flex-1 flex max-w-7xl mx-auto w-full">
         {/* Sidebar - Conversations */}

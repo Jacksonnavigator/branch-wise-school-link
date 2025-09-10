@@ -34,19 +34,37 @@ const AccountantDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  const [recent, setRecent] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchFinancialStats = async () => {
       if (!profile?.branch_id) return;
 
       try {
-        // In a real implementation, these would fetch from your financial data
-        // For now, showing the structure for accountant functionality
-        setStats({
-          totalRevenue: 125000,
-          pendingPayments: 15000,
-          paidPayments: 110000,
-          monthlyIncome: 45000
-        });
+        // Fetch payments for this branch
+        const paymentsSnapshot = await getDocs(query(collection(db, 'payments'), where('branch_id', '==', profile.branch_id)));
+        const payments = paymentsSnapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+
+        const totalRevenue = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const paidPayments = payments.filter(p => p.status !== 'pending').length;
+        const pendingPayments = payments.filter(p => p.status === 'pending').length;
+
+        // compute monthly income (last 30 days)
+        const last30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const monthlyIncome = payments.filter(p => {
+          const t = p.created_at?.toDate ? p.created_at.toDate().getTime() : (p.created_at ? new Date(p.created_at).getTime() : 0);
+          return t >= last30;
+        }).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+        setStats({ totalRevenue, pendingPayments, paidPayments, monthlyIncome });
+
+        const recentPayments = payments.sort((a, b) => {
+          const ta = a.created_at?.toDate ? a.created_at.toDate().getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const tb = b.created_at?.toDate ? b.created_at.toDate().getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          return tb - ta;
+        }).slice(0, 5);
+
+        setRecent(recentPayments);
       } catch (error) {
         console.error('Error fetching financial stats:', error);
         toast({
@@ -221,20 +239,18 @@ const AccountantDashboard = () => {
             <CardDescription>Latest payment activities</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                <span>John Doe - Grade 10A</span>
-                <Badge variant="default">₹5,000</Badge>
+              <div className="space-y-3 text-sm">
+                {recent.length === 0 ? (
+                  <div className="text-muted-foreground">No recent transactions</div>
+                ) : (
+                  recent.map(r => (
+                    <div key={r.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
+                      <span>{r.student_name || r.student_id || 'Unknown'}</span>
+                      <Badge variant="default">₹{Number(r.amount).toLocaleString()}</Badge>
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                <span>Jane Smith - Grade 9B</span>
-                <Badge variant="default">₹4,500</Badge>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                <span>Mike Johnson - Grade 8A</span>
-                <Badge variant="secondary">₹3,000</Badge>
-              </div>
-            </div>
           </CardContent>
         </Card>
 

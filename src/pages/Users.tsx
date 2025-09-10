@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,18 +100,11 @@ const UserManagement = () => {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            User Management
-          </h2>
-          <p className="text-muted-foreground mt-2">Manage system users and roles</p>
-        </div>
-        <Button className="gradient-primary hover:scale-105 transition-all duration-200 shadow-soft">
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
-      </div>
+      <PageHeader
+        title="User Management"
+        subtitle="Manage system users and roles"
+        actions={<Button className="gradient-primary hover:scale-105 transition-all duration-200 shadow-soft"><Plus className="h-4 w-4 mr-2" />Add User</Button>}
+      />
 
       <Card className="glass shadow-elegant border-0">
         <CardHeader>

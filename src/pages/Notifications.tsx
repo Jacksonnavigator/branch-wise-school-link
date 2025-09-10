@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -180,21 +181,7 @@ const Notifications = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-          <p className="text-muted-foreground">
-            Manage your notifications and stay updated
-          </p>
-        </div>
-        
-        {unreadCount > 0 && (
-          <Button onClick={markAllAsRead} className="bg-primary hover:bg-primary/90">
-            <Check className="h-4 w-4 mr-2" />
-            Mark All Read ({unreadCount})
-          </Button>
-        )}
-      </div>
+      <PageHeader title="Notifications" subtitle="Manage your notifications and stay updated" actions={unreadCount > 0 ? <Button onClick={markAllAsRead} className="bg-primary hover:bg-primary/90"><Check className="h-4 w-4 mr-2"/>Mark All Read ({unreadCount})</Button> : null} />
 
       <Card>
         <CardHeader>

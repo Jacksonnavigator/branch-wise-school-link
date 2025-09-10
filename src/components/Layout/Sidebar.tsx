@@ -110,18 +110,18 @@ const Sidebar = () => {
   const navigationItems = getNavigationItems();
 
   return (
-    <div className="bg-sidebar border-r border-sidebar-border w-64 min-h-screen shadow-soft flex flex-col">
-      <div className="p-6 border-b border-sidebar-border/50">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-sidebar-primary to-primary-glow bg-clip-text text-transparent">
+    <div className="w-72 min-h-screen shadow-elegant flex flex-col glass rounded-tr-2xl rounded-br-2xl overflow-hidden">
+      <div className="p-6 border-b border-sidebar-border/30 bg-gradient-secondary/40">
+        <h2 className="text-2xl font-extrabold bg-gradient-to-r from-sidebar-primary to-primary-glow bg-clip-text text-transparent">
           EduManager
         </h2>
         <p className="text-sm text-sidebar-foreground/70 mt-1 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-glow"></span>
           {branchName || 'Loading...'}
         </p>
       </div>
       
-      <nav className="p-4 space-y-1 flex-1">
+      <nav className="p-4 space-y-2 flex-1">
         {navigationItems.map((item, index) => (
           <NavLink
             key={item.name}
@@ -129,16 +129,16 @@ const Sidebar = () => {
             className={({ isActive }) =>
               cn(
                 'flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden',
-                'hover:transform hover:scale-[1.02]',
+                'hover:transform hover:scale-[1.02] hover:shadow-glow',
                 isActive
-                  ? 'bg-primary/90 text-white shadow-glow border border-primary/30 font-semibold'
+                  ? 'bg-primary/95 text-white shadow-glow border border-primary/30 font-semibold scale-102'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-soft'
               )
             }
             style={{ animationDelay: `${index * 0.05}s` }}
           >
             <div className="relative z-10 flex items-center space-x-3">
-              <item.icon className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+              <item.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
               <span className="font-medium">{item.name}</span>
             </div>
             {/* Hover effect background */}

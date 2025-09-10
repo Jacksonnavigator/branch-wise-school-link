@@ -1,15 +1,13 @@
 
 import React from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Children = () => {
   return (
     <div className="p-6">
+      <PageHeader title="My Children" subtitle="View your children's academic progress" />
       <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">My Children</h2>
-          <p className="text-gray-600">View your children's academic progress</p>
-        </div>
         
         <Card>
           <CardHeader>

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,12 +41,11 @@ const Reports = () => {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-          Reports & Analytics
-        </h2>
-        <p className="text-muted-foreground mt-2">Generate and view comprehensive academic and administrative reports</p>
-      </div>
+      <PageHeader
+        title="Reports & Analytics"
+        subtitle="Generate and view comprehensive academic and administrative reports"
+        actions={<Button onClick={handleGenerateReport} className="gradient-primary hover:scale-105 transition-all h-12"><Download className="h-4 w-4 mr-2" />Generate & Download Report</Button>}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 glass border-border">

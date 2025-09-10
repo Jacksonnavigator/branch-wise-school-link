@@ -47,10 +47,17 @@ const TeacherDashboard = () => {
         );
         const studentsSnapshot = await getDocs(studentsQuery);
         
+        // Attempt to compute classes/subjects if available on user profile or student records
+        const uniqueClasses = new Set<string>();
+        studentsSnapshot.docs.forEach(d => {
+          const data = d.data() as any;
+          if (data.class) uniqueClasses.add(data.class);
+        });
+
         setStats({
           myStudents: studentsSnapshot.size || 0,
-          myClasses: 2,
-          subjects: 3,
+          myClasses: uniqueClasses.size || 0,
+          subjects: 0, // subject assignments require separate collection; keep 0 until available
           attendanceRate: '95%'
         });
       } catch (error) {

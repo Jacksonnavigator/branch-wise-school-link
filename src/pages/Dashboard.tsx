@@ -1,5 +1,6 @@
 
 import React from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminDashboard from '@/components/Dashboard/AdminDashboard';
 import ParentDashboard from '@/components/Dashboard/ParentDashboard';
@@ -31,6 +32,7 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
+      <PageHeader title="Dashboard" subtitle={`Welcome back, ${profile?.name || ''}`} />
       {renderDashboard()}
     </div>
   );

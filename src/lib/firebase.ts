@@ -1,6 +1,5 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -19,7 +18,30 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Initialize Analytics only in browser environments where supported
+if (typeof window !== 'undefined') {
+  // dynamic import to avoid SSR / test environment errors
+  import('firebase/analytics')
+    .then(({ getAnalytics, isSupported }) => {
+      // isSupported returns a promise
+      try {
+        isSupported().then((supported) => {
+          if (supported) {
+            getAnalytics(app);
+          }
+        }).catch(() => {
+          // ignore analytics support errors
+        });
+      } catch (e) {
+        // ignore
+      }
+    })
+    .catch(() => {
+      // analytics package not available or failed to load in this env
+    });
+}
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

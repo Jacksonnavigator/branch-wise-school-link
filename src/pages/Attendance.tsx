@@ -219,45 +219,43 @@ const Attendance = () => {
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Attendance Management
-          </h2>
-          <p className="text-muted-foreground mt-2">Track and manage student attendance records</p>
-        </div>
-        <div className="flex space-x-2">
-          {isMarkingAttendance ? (
-            <>
+      <PageHeader
+        title="Attendance Management"
+        subtitle="Track and manage student attendance records"
+        actions={(
+          <div className="flex space-x-2">
+            {isMarkingAttendance ? (
+              <>
+                <Button 
+                  onClick={handleSaveAttendance}
+                  className="gradient-primary hover:scale-105 transition-all duration-200 shadow-soft"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Attendance
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setIsMarkingAttendance(false);
+                    fetchAttendance();
+                  }}
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
               <Button 
-                onClick={handleSaveAttendance}
+                onClick={handleMarkAttendance}
                 className="gradient-primary hover:scale-105 transition-all duration-200 shadow-soft"
+                disabled={!selectedClass}
               >
-                <Save className="h-4 w-4 mr-2" />
-                Save Attendance
+                <Calendar className="h-4 w-4 mr-2" />
+                Mark Attendance
               </Button>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setIsMarkingAttendance(false);
-                  fetchAttendance();
-                }}
-              >
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <Button 
-              onClick={handleMarkAttendance}
-              className="gradient-primary hover:scale-105 transition-all duration-200 shadow-soft"
-              disabled={!selectedClass}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Mark Attendance
-            </Button>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        )}
+      />
 
       {/* Quick Stats */}
       {selectedClass && Object.keys(attendanceData).length > 0 && (

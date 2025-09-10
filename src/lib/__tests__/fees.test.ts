@@ -9,9 +9,11 @@ describe('fees utilities', () => {
     expect(csv).toContain('Alice');
   });
 
-  it('generates a PDF blob for receipt', () => {
+  it('generates a PDF blob for receipt', async () => {
     const payment = { receipt_id: 'r1', student_name: 'Alice', amount: 500, method: 'cash', recorded_by: 'u1', note: 'Test' };
-    const blob = generateReceiptPDF(payment);
+    const blob = await generateReceiptPDF(payment as any);
+    // In Node test env we return a placeholder object — ensure it's defined and contains receipt_id
     expect(blob).toBeDefined();
+    expect(blob.receipt_id).toBe('r1');
   });
 });

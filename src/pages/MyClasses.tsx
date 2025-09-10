@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import PageHeader from '@/components/ui/PageHeader';
 import ClassManagement from '@/components/Teachers/ClassManagement';
 import { Navigate } from 'react-router-dom';
 
@@ -16,6 +17,7 @@ const MyClasses = () => {
 
   return (
     <div className="p-6">
+      <PageHeader title="My Classes" subtitle="Manage your classes and students" />
       <ClassManagement />
     </div>
   );

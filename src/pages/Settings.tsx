@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader from '@/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,10 +110,11 @@ const Settings = () => {
   const isAdmin = profile?.role === 'admin';
   const isHeadmaster = profile?.role === 'headmaster';
   const canAccessSystemSettings = isAdmin || isHeadmaster;
-
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-background via-background to-background/95">
-      {/* Enhanced Header */}
+      <PageHeader title="Settings" subtitle="Customize your experience and system preferences" />
+
+      {/* Decorative enhanced header kept for visual emphasis */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 p-8 border border-border/50">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="relative flex items-center justify-between">
@@ -124,13 +126,10 @@ const Settings = () => {
               </div>
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Settings
-              </h1>
               <p className="text-muted-foreground text-lg">Customize your experience and system preferences</p>
             </div>
           </div>
-          
+
           {/* Status Indicators */}
           <div className="flex flex-col items-end gap-2">
             {hasUnsavedChanges && (
@@ -148,6 +147,7 @@ const Settings = () => {
           </div>
         </div>
       </div>
+*** End Patch
 
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="grid w-full grid-cols-6">
