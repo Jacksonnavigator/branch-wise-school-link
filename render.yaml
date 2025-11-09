@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: branch-wise-school-link
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+    autoDeploy: true
