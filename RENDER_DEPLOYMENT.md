@@ -19,15 +19,15 @@ This guide will help you deploy your React + Vite application to Render.com.
 
 ```yaml
 services:
-  - type: web
-    name: branch-wise-school-link
-    env: node
-    buildCommand: npm install && npm run build
-    startCommand: npm run preview
-    staticPublishPath: ./dist
-    envVars:
-      - key: NODE_VERSION
-        value: 18.0.0
+   - type: web
+      name: branch-wise-school-link
+      env: node
+      buildCommand: npm install && npm audit fix --force && npm run build
+      startCommand: npm run preview
+      staticPublishPath: ./dist
+      envVars:
+         - key: NODE_VERSION
+            value: 18.0.0
 ```
 
 ### 2. Deploy to Render
@@ -45,7 +45,7 @@ services:
    - **Region**: Choose the region closest to your users
    - **Branch**: Select your main branch
    - **Runtime**: Node
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install && npm audit fix --force && npm run build`
    - **Start Command**: `npm run preview`
 
 5. Environment Variables:
@@ -60,7 +60,9 @@ Render will automatically detect that this is a Node.js application. However, yo
 - **Build Command**: `npm install && npm audit fix --force && npm run build`
 - **Start Command**: `npm run preview`
 
-Note: The build command includes `npm audit fix --force` to automatically fix security vulnerabilities during deployment.
+**Note:**
+- The build command includes `npm audit fix --force` to automatically fix security vulnerabilities during deployment.
+- The project uses Vite 5.x for compatibility with all dependencies. Do not upgrade to Vite 6 or 7 unless all plugins and dev dependencies support it.
 
 ### 4. Deploy
 
