@@ -1,6 +1,5 @@
 // Cryptographic utilities for the school management system
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+// Note: Audit logging is handled server-side. Import removed to prevent client-side writes.
 
 /**
  * Cryptographic constants and configurations
@@ -167,14 +166,64 @@ export const generateSessionToken = (): string => {
 };
 
 /**
- * Validate and sanitize input to prevent injection attacks
+ * Validate email format
  */
-export const sanitizeInput = (input: string): string => {
-  return input
+export const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+/**
+ * Sanitize email input (less aggressive than general input)
+ */
+export const sanitizeEmail = (email: string): string => {
+  return email.toLowerCase().trim().slice(0, 254); // Max email length is 254 chars
+};
+
+/**
+ * Validate and sanitize input to prevent injection attacks
+ * Note: For emails, use sanitizeEmail() instead
+ */
+export const sanitizeInput = (input: string, allowQuotes: boolean = false): string => {
+  if (!input || typeof input !== 'string') return '';
+  
+  let sanitized = input
     .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/['"]/g, '') // Remove quotes that could break SQL
     .replace(/[;&|`$]/g, '') // Remove command injection characters
     .trim();
+  
+  // Only remove quotes if not allowed (for emails, quotes might be valid)
+  if (!allowQuotes) {
+    sanitized = sanitized.replace(/['"]/g, '');
+  }
+  
+  // Limit length to prevent DoS
+  return sanitized.slice(0, 10000);
+};
+
+/**
+ * Validate payment amount
+ */
+export const isValidPaymentAmount = (amount: number): { valid: boolean; error?: string } => {
+  if (typeof amount !== 'number' || isNaN(amount) || !isFinite(amount)) {
+    return { valid: false, error: 'Amount must be a valid number' };
+  }
+  
+  if (amount <= 0) {
+    return { valid: false, error: 'Amount must be greater than zero' };
+  }
+  
+  if (amount > 10000000) { // 10 million max (adjust as needed)
+    return { valid: false, error: 'Amount exceeds maximum limit' };
+  }
+  
+  // Check for too many decimal places (max 2 for currency)
+  const decimalPlaces = (amount.toString().split('.')[1] || '').length;
+  if (decimalPlaces > 2) {
+    return { valid: false, error: 'Amount can have at most 2 decimal places' };
+  }
+  
+  return { valid: true };
 };
 
 /**
@@ -236,6 +285,9 @@ export const rateLimiter = new RateLimiter();
 
 /**
  * Audit logging for security events
+ * Note: Firestore rules prevent client-side writes to audit logs.
+ * In production, this should be done via Cloud Functions or a server-side API.
+ * For now, we log to console in development and fail silently in production.
  */
 export const auditLog = async (event: {
   action: string;
@@ -251,14 +303,24 @@ export const auditLog = async (event: {
       user_id: event.userId,
       details: event.details,
       ip_address: event.ipAddress,
-      user_agent: event.userAgent,
+      user_agent: event.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
       severity: getSeverityLevel(event.action),
     };
 
-    // Log to Firebase Firestore
-    await addDoc(collection(db, 'security_audit_logs'), logEntry);
+    // In development, log to console
+    if (import.meta.env.DEV) {
+      console.log('[Audit Log]', logEntry);
+    }
+
+    // In production, audit logs should be written server-side via Cloud Functions
+    // Client-side writes are blocked by Firestore security rules for security
+    // TODO: Implement server-side audit logging via Cloud Functions or API endpoint
+    // await addDoc(collection(db, 'security_audit_logs'), logEntry);
   } catch (error) {
-    console.error('Failed to log security event:', error);
+    // Fail silently - audit logging should never break the application
+    if (import.meta.env.DEV) {
+      console.error('Failed to log security event:', error);
+    }
   }
 };
 

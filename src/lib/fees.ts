@@ -7,46 +7,123 @@ import { v4 as uuidv4 } from 'uuid';
 // - Outputs: created/updated payment doc
 // - Error modes: duplicate receipt, missing fields
 
-export async function createPayment(payment: { student_id: string; amount: number; method?: string; note?: string; branch_id?: string; recorded_by?: string; receipt_id?: string }) {
-  if (!payment.student_id) throw new Error('student_id required');
-  if (!payment.amount || payment.amount <= 0) throw new Error('invalid amount');
+import { isValidPaymentAmount, sanitizeInput } from './crypto';
 
-  // Simple duplicate check: prevent same student/amount/branch within short window if receipt_id not provided
-  if (!payment.receipt_id) {
-    const recentQuery = query(
+export async function createPayment(payment: { student_id: string; amount: number; method?: string; note?: string; branch_id?: string; recorded_by?: string; receipt_id?: string }) {
+  // Validate required fields
+  if (!payment.student_id || typeof payment.student_id !== 'string') {
+    throw new Error('student_id is required and must be a string');
+  }
+  
+  if (!payment.branch_id || typeof payment.branch_id !== 'string') {
+    throw new Error('branch_id is required and must be a string');
+  }
+  
+  if (!payment.recorded_by || typeof payment.recorded_by !== 'string') {
+    throw new Error('recorded_by is required and must be a string');
+  }
+  
+  // Validate amount
+  const amountValidation = isValidPaymentAmount(payment.amount);
+  if (!amountValidation.valid) {
+    throw new Error(amountValidation.error || 'Invalid amount');
+  }
+  
+  // Sanitize inputs
+  const sanitizedStudentId = sanitizeInput(payment.student_id);
+  const sanitizedBranchId = sanitizeInput(payment.branch_id);
+  const sanitizedRecordedBy = sanitizeInput(payment.recorded_by);
+  const sanitizedMethod = payment.method ? sanitizeInput(payment.method) : 'cash';
+  const sanitizedNote = payment.note ? sanitizeInput(payment.note, true) : null;
+  
+  // Validate method
+  const validMethods = ['cash', 'bank_transfer', 'cheque', 'card', 'online'];
+  if (!validMethods.includes(sanitizedMethod.toLowerCase())) {
+    throw new Error('Invalid payment method');
+  }
+
+  // Generate receipt ID if not provided
+  const receiptId = payment.receipt_id || uuidv4();
+  
+  // Validate receipt ID format (UUID v4)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(receiptId)) {
+    throw new Error('Invalid receipt_id format');
+  }
+
+  // Check for duplicate receipt ID
+  if (payment.receipt_id) {
+    const duplicateQuery = query(
       collection(db, 'payments'),
-      where('student_id', '==', payment.student_id),
-      where('amount', '==', payment.amount),
-      where('branch_id', '==', payment.branch_id || null)
+      where('receipt_id', '==', receiptId)
     );
-    const recent = await getDocs(recentQuery);
-    if (!recent.empty) {
-      // If any exact match exists, consider duplicate
-      throw new Error('Duplicate payment detected');
+    const duplicate = await getDocs(duplicateQuery);
+    if (!duplicate.empty) {
+      throw new Error('Receipt ID already exists');
     }
   }
 
-  const receiptId = payment.receipt_id || uuidv4();
-
   const payload = {
-    student_id: payment.student_id,
-    amount: payment.amount,
-    method: payment.method || 'cash',
-    note: payment.note || null,
-    branch_id: payment.branch_id || null,
-    recorded_by: payment.recorded_by || null,
+    student_id: sanitizedStudentId,
+    amount: payment.amount, // Already validated as number
+    method: sanitizedMethod.toLowerCase(),
+    note: sanitizedNote,
+    branch_id: sanitizedBranchId,
+    recorded_by: sanitizedRecordedBy,
     receipt_id: receiptId,
     created_at: serverTimestamp()
-  } as any;
+  };
 
   const ref = await addDoc(collection(db, 'payments'), payload);
   return { id: ref.id, ...payload };
 }
 
 export async function editPayment(paymentId: string, updates: Partial<{ amount: number; method: string; note: string }>) {
-  if (!paymentId) throw new Error('paymentId required');
+  if (!paymentId || typeof paymentId !== 'string') {
+    throw new Error('paymentId is required and must be a string');
+  }
+  
+  // Validate amount if provided
+  if (updates.amount !== undefined) {
+    const amountValidation = isValidPaymentAmount(updates.amount);
+    if (!amountValidation.valid) {
+      throw new Error(amountValidation.error || 'Invalid amount');
+    }
+  }
+  
+  // Validate and sanitize method if provided
+  if (updates.method !== undefined) {
+    const validMethods = ['cash', 'bank_transfer', 'cheque', 'card', 'online'];
+    const sanitizedMethod = sanitizeInput(updates.method).toLowerCase();
+    if (!validMethods.includes(sanitizedMethod)) {
+      throw new Error('Invalid payment method');
+    }
+    updates.method = sanitizedMethod;
+  }
+  
+  // Sanitize note if provided
+  if (updates.note !== undefined) {
+    updates.note = updates.note ? sanitizeInput(updates.note, true) : null;
+  }
+  
   const ref = doc(db, 'payments', paymentId);
-  await updateDoc(ref, { ...updates, updated_at: serverTimestamp() } as any);
+  
+  // Check if payment exists
+  const existing = await getDoc(ref);
+  if (!existing.exists()) {
+    throw new Error('Payment not found');
+  }
+  
+  // Prepare update payload (only include provided fields)
+  const updatePayload: any = {
+    updated_at: serverTimestamp()
+  };
+  
+  if (updates.amount !== undefined) updatePayload.amount = updates.amount;
+  if (updates.method !== undefined) updatePayload.method = updates.method;
+  if (updates.note !== undefined) updatePayload.note = updates.note;
+  
+  await updateDoc(ref, updatePayload);
   const updated = await getDoc(ref);
   return { id: updated.id, ...(updated.data() as any) };
 }

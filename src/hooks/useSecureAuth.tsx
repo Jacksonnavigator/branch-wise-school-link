@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { rateLimiter, auditLog, sanitizeInput, isSessionValid, generateSessionToken } from '@/lib/crypto';
+import { rateLimiter, auditLog, sanitizeInput, sanitizeEmail, isValidEmail, isSessionValid, generateSessionToken } from '@/lib/crypto';
 import { signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
@@ -32,7 +32,25 @@ export const useSecureAuth = () => {
    * Secure login with rate limiting and audit logging
    */
   const secureSignIn = useCallback(async (credentials: LoginCredentials) => {
-    const sanitizedEmail = sanitizeInput(credentials.email);
+    // Validate and sanitize email
+    if (!credentials.email || typeof credentials.email !== 'string') {
+      return { error: 'Email is required' };
+    }
+    
+    const sanitizedEmail = sanitizeEmail(credentials.email);
+    if (!isValidEmail(sanitizedEmail)) {
+      return { error: 'Invalid email format' };
+    }
+    
+    // Validate password
+    if (!credentials.password || typeof credentials.password !== 'string') {
+      return { error: 'Password is required' };
+    }
+    
+    if (credentials.password.length < 6) {
+      return { error: 'Password must be at least 6 characters' };
+    }
+    
     const clientIP = await getClientIP();
     
     // Check rate limiting

@@ -22,11 +22,20 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    // Log error details (consider sending to error tracking service in production)
+    const isDevelopment = import.meta.env.DEV;
+    if (isDevelopment) {
+      console.error('Error caught by boundary:', error, errorInfo);
+    } else {
+      // In production, send to error tracking service (e.g., Sentry, LogRocket)
+      // TODO: Integrate error tracking service
+      console.error('An error occurred. Error ID:', Date.now());
+    }
   }
 
   public render() {
     if (this.state.hasError) {
+      const isDevelopment = import.meta.env.DEV;
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="max-w-md w-full">
@@ -37,9 +46,9 @@ class ErrorBoundary extends Component<Props, State> {
                   <p className="text-sm text-muted-foreground">
                     An unexpected error occurred. Please try refreshing the page.
                   </p>
-                  {this.state.error && (
+                  {isDevelopment && this.state.error && (
                     <details className="mt-2 text-xs">
-                      <summary className="cursor-pointer">Error details</summary>
+                      <summary className="cursor-pointer">Error details (development only)</summary>
                       <pre className="mt-2 p-2 bg-muted rounded text-left overflow-auto">
                         {this.state.error.message}
                       </pre>
