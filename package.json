@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
-    "firebase:test:rules": "firebase deploy --only firestore:rules --dry-run"
+    "firebase:test:rules": "firebase deploy --only firestore:rules --dry-run",
+    "audit:fix": "npm audit fix",
+    "prebuild": "npm audit fix"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

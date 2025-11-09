@@ -24,6 +24,7 @@ services:
     env: node
     buildCommand: npm install && npm run build
     startCommand: npm run preview
+    staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
         value: 18.0.0
