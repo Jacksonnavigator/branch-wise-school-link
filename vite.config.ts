@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
       host: "::",
       port: 8080,
     },
+    preview: {
+      allowedHosts: ["branch-wise-school-link.onrender.com"]
+    },
     plugins: [
       react(),
   // componentTagger removed
