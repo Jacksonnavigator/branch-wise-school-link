@@ -57,8 +57,10 @@ services:
 Render will automatically detect that this is a Node.js application. However, you should verify these settings in the dashboard:
 
 - **Node Version**: 18.x or higher
-- **Build Command**: `npm install && npm run build`
+- **Build Command**: `npm install && npm audit fix --force && npm run build`
 - **Start Command**: `npm run preview`
+
+Note: The build command includes `npm audit fix --force` to automatically fix security vulnerabilities during deployment.
 
 ### 4. Deploy
 
